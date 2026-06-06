@@ -1,0 +1,43 @@
+{
+  "db": {
+    "provider": "supabase",
+    "firebase": {
+      "apiKey": "REPLACE_ME",
+      "authDomain": "REPLACE_ME.firebaseapp.com",
+      "projectId": "REPLACE_ME",
+      "storageBucket": "REPLACE_ME.appspot.com",
+      "messagingSenderId": "REPLACE_ME",
+      "appId": "1:REPLACE_ME:web:REPLACE_ME",
+      "measurementId": "G-REPLACE_ME"
+    }
+  },
+  "supabase": {
+    "url": "https://REPLACE_ME.supabase.co",
+    "anonKey": "REPLACE_ME"
+  },
+  "razorpay": {
+    "rzp_key_id": "REPLACE_ME",
+    "rzp_key_secret": "REPLACE_ME",
+    "rzp_webhook_secret": "REPLACE_ME",
+    "currency": "INR"
+  },
+  "ai": {
+    "provider": "gemini",
+    "apiKey": "REPLACE_ME",
+    "baseUrl": "https://generativelanguage.googleapis.com/v1beta2",
+    "imageModel": "gemini-2.5-flash-image",
+    "textModel": "gemini-2.5-flash-image"
+  },
+  "featureCosts": {
+    "AI_TEXT_TO_DESIGN": 8,
+    "AI_SKETCH_TO_DESIGN": 10,
+    "AI_SMART_PALETTE": 3,
+    "AI_PROMPT_ENHANCE": 2,
+    "AI_LOOKBOOK_RENDER": 15,
+    "IMAGE_CLEAN": 4,
+    "PATTERN_VECTORIZE": 5,
+    "COLOR_SEPARATION": 4,
+    "SEAMLESS_EXTEND": 3,
+    "GEOMETRIC_REPEAT": 2
+  }
+}

@@ -50,7 +50,14 @@ function traceContours(edges: Uint8Array, w: number, h: number, threshold = 80):
   const visited = new Uint8Array(w * h);
   const paths: string[] = [];
   const dirs = [
-    [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1],
+    [1, 0],
+    [1, 1],
+    [0, 1],
+    [-1, 1],
+    [-1, 0],
+    [-1, -1],
+    [0, -1],
+    [1, -1],
   ];
 
   for (let y = 1; y < h - 1; y++) {

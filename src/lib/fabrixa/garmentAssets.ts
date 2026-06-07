@@ -1,8 +1,9 @@
 /** Maps garment model filenames (incl. spaces) to bundled Vite URLs. */
-const GLB_URLS = import.meta.glob<string>(
-  "../../assets/models/*.glb",
-  { eager: true, query: "?url", import: "default" },
-) as Record<string, string>;
+const GLB_URLS = import.meta.glob<string>("../../assets/models/*.glb", {
+  eager: true,
+  query: "?url",
+  import: "default",
+}) as Record<string, string>;
 
 export function normalizeModelKey(name: string): string {
   return name

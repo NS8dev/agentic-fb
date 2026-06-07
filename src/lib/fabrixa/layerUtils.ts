@@ -2,9 +2,7 @@ import { compositeLayers } from "./TextureCompositor";
 import type { DesignLayer, PartState } from "./garments";
 
 /** Re-composite design layers and return the new overlay data URL. */
-export async function recompositeLayerOverlay(
-  layers: DesignLayer[],
-): Promise<string | null> {
+export async function recompositeLayerOverlay(layers: DesignLayer[]): Promise<string | null> {
   return compositeLayers(null, layers);
 }
 

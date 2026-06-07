@@ -35,40 +35,36 @@ export function PlanSelectionPage({
       />
       <main className="relative z-10 mx-auto flex w-full max-w-3xl flex-1 flex-col justify-center px-4 py-12">
         <div className="rounded-3xl border border-white/25 bg-white/40 p-1 shadow-2xl backdrop-blur-2xl dark:border-white/10 dark:bg-white/5">
-        <div className="rounded-[1.35rem] border border-white/30 bg-background/80 p-8 backdrop-blur-xl dark:border-white/10 dark:bg-background/65 sm:p-10">
-          <p className="text-sm font-medium text-primary">Welcome, {name}</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">Activate your plan</h1>
-          <p className="mt-3 text-muted-foreground leading-relaxed">
-            Your account is ready. Choose Creator, Studio, or Enterprise to unlock
-            the full workspace, daily coins, and AI allowances.
-          </p>
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            <Info icon={Coins} title="Coin economy" text="Pay per export, save, and AI run" />
-            <Info icon={Calendar} title="Flexible billing" text="Monthly, 6-month, or yearly" />
-            <Info icon={Sparkles} title="Instant access" text="Workspace opens after checkout" />
+          <div className="rounded-[1.35rem] border border-white/30 bg-background/80 p-8 backdrop-blur-xl dark:border-white/10 dark:bg-background/65 sm:p-10">
+            <p className="text-sm font-medium text-primary">Welcome, {name}</p>
+            <h1 className="mt-2 text-3xl font-bold tracking-tight">Activate your plan</h1>
+            <p className="mt-3 text-muted-foreground leading-relaxed">
+              Your account is ready. Choose Creator, Studio, or Enterprise to unlock the full
+              workspace, daily coins, and AI allowances.
+            </p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              <Info icon={Coins} title="Coin economy" text="Pay per export, save, and AI run" />
+              <Info icon={Calendar} title="Flexible billing" text="Monthly, 6-month, or yearly" />
+              <Info icon={Sparkles} title="Instant access" text="Workspace opens after checkout" />
+            </div>
+            <Button size="lg" className="mt-8" onClick={() => onPricingOpenChange(true)}>
+              <Sparkles className="mr-2 h-4 w-4" />
+              View plans & pricing
+            </Button>
           </div>
-          <Button size="lg" className="mt-8" onClick={() => onPricingOpenChange(true)}>
-            <Sparkles className="mr-2 h-4 w-4" />
-            View plans & pricing
-          </Button>
-        </div>
         </div>
       </main>
       <AppFooter />
-      <PricingDialog open={pricingOpen} onOpenChange={onPricingOpenChange} onActivated={onActivated} />
+      <PricingDialog
+        open={pricingOpen}
+        onOpenChange={onPricingOpenChange}
+        onActivated={onActivated}
+      />
     </div>
   );
 }
 
-function Info({
-  icon: Icon,
-  title,
-  text,
-}: {
-  icon: typeof Coins;
-  title: string;
-  text: string;
-}) {
+function Info({ icon: Icon, title, text }: { icon: typeof Coins; title: string; text: string }) {
   return (
     <div className="rounded-lg border bg-muted/30 p-4">
       <Icon className="mb-2 h-4 w-4 text-primary" />

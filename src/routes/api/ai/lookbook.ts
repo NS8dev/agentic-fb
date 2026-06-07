@@ -60,7 +60,8 @@ export const Route = createFileRoute("/api/ai/lookbook")({
           });
         } catch (e) {
           const msg = e instanceof Error ? e.message : "Lookbook render failed";
-          const status = msg.includes("GEMINI_API_KEY") || msg.includes("GOOGLE_AI_API_KEY") ? 503 : 500;
+          const status =
+            msg.includes("GEMINI_API_KEY") || msg.includes("GOOGLE_AI_API_KEY") ? 503 : 500;
           return Response.json({ error: msg }, { status });
         }
       },

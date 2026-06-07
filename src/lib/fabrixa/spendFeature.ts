@@ -13,23 +13,16 @@ export interface SpendPatch {
   dailyShowroomDownloadsCount?: number;
 }
 
-export function computeSpendPatch(
-  ent: Entitlement,
-  feature: FeatureCostKey,
-): SpendPatch {
+export function computeSpendPatch(ent: Entitlement, feature: FeatureCostKey): SpendPatch {
   const cost = costOfFeature(feature);
   const patch: SpendPatch = {
     coinBalance: Math.max(0, (ent.coinBalance ?? 0) - cost),
   };
   if (isAiDailyCapped(feature)) {
-    patch.dailyAiRequestsRemaining = Math.max(
-      0,
-      (ent.dailyAiRequestsRemaining ?? 0) - 1,
-    );
+    patch.dailyAiRequestsRemaining = Math.max(0, (ent.dailyAiRequestsRemaining ?? 0) - 1);
   }
   if (feature === "SHOWROOM_UNLOCK") {
-    patch.dailyShowroomDownloadsCount =
-      (ent.dailyShowroomDownloadsCount ?? 0) + 1;
+    patch.dailyShowroomDownloadsCount = (ent.dailyShowroomDownloadsCount ?? 0) + 1;
   }
   return patch;
 }
@@ -45,10 +38,7 @@ export async function persistFeatureSpend(
   userId: string,
   feature: FeatureCostKey,
   ent: Entitlement,
-): Promise<
-  | { ok: true; patch: SpendPatch; row: UsersRow }
-  | { ok: false; message: string }
-> {
+): Promise<{ ok: true; patch: SpendPatch; row: UsersRow } | { ok: false; message: string }> {
   const cost = costOfFeature(feature);
   if (cost <= 0) {
     return {
@@ -113,8 +103,7 @@ export async function persistFeatureSpend(
       patch,
       row: {
         coinBalance: patch.coinBalance,
-        dailyAiRequestsRemaining:
-          patch.dailyAiRequestsRemaining ?? ent.dailyAiRequestsRemaining,
+        dailyAiRequestsRemaining: patch.dailyAiRequestsRemaining ?? ent.dailyAiRequestsRemaining,
         dailyShowroomDownloadsCount:
           patch.dailyShowroomDownloadsCount ?? ent.dailyShowroomDownloadsCount,
       },

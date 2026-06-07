@@ -120,14 +120,16 @@ export async function loadGarmentModel(path: string): Promise<LoadResult> {
               geom.computeVertexNormals();
             }
             if (geom.attributes.uv && geom.index && !geom.attributes.tangent) {
-              try { geom.computeTangents(); } catch { /* ignore */ }
+              try {
+                geom.computeTangents();
+              } catch {
+                /* ignore */
+              }
             }
           }
           if (mesh.material) {
             if (Array.isArray(mesh.material)) {
-              mesh.material = mesh.material.map((m) =>
-                m ? normalizeGarmentMaterial(m) : m,
-              );
+              mesh.material = mesh.material.map((m) => (m ? normalizeGarmentMaterial(m) : m));
             } else {
               mesh.material = normalizeGarmentMaterial(mesh.material);
             }
@@ -140,7 +142,13 @@ export async function loadGarmentModel(path: string): Promise<LoadResult> {
             (mm as THREE.Material).side = THREE.DoubleSide;
             const std = mm as THREE.MeshStandardMaterial;
             // Make sure textures look smooth (anisotropy + mipmaps).
-            for (const t of [std.map, std.normalMap, std.roughnessMap, std.metalnessMap, std.emissiveMap]) {
+            for (const t of [
+              std.map,
+              std.normalMap,
+              std.roughnessMap,
+              std.metalnessMap,
+              std.emissiveMap,
+            ]) {
               if (!t) continue;
               t.anisotropy = Math.max(t.anisotropy ?? 1, 8);
               t.minFilter = THREE.LinearMipmapLinearFilter;
@@ -157,7 +165,7 @@ export async function loadGarmentModel(path: string): Promise<LoadResult> {
       return { ok: true, scene: cloneScene(gltf.scene) };
     } catch (e) {
       const err = e instanceof Error ? e : new Error(String(e));
-      // eslint-disable-next-line no-console
+
       console.warn("[fabrixa] model load failed, using fallback:", url, err.message);
       cache.set(url, { status: "error", error: err });
       return { ok: false, error: err };

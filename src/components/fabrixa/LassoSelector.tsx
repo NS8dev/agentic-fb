@@ -45,7 +45,12 @@ function getSnapshot() {
 }
 
 let reqSeq = 0;
-function emitRequest(points: Pt[], rect: { width: number; height: number }, mode: LassoMode, brushSize: number = 20) {
+function emitRequest(
+  points: Pt[],
+  rect: { width: number; height: number },
+  mode: LassoMode,
+  brushSize: number = 20,
+) {
   store.request = { id: ++reqSeq, points, rect, mode, brushSize };
   notify();
 }
@@ -78,7 +83,10 @@ export function LassoOverlay({
     const r = getRect();
     const p = { x: e.clientX - r.left, y: e.clientY - r.top };
     if (mode === "polygon") {
-      if (e.button === 2) { setPoints([]); return; }
+      if (e.button === 2) {
+        setPoints([]);
+        return;
+      }
       setPoints((prev) => [...prev, p]);
       return;
     }
@@ -105,7 +113,7 @@ export function LassoOverlay({
     if (!drawingRef.current) return;
     drawingRef.current = false;
     const pts = pointsRef.current;
-    if ((mode === "brush" && pts.length > 0) || (pts.length >= 3)) {
+    if ((mode === "brush" && pts.length > 0) || pts.length >= 3) {
       const r = getRect();
       emitRequest(pts, { width: r.width, height: r.height }, mode, brushSize);
     }
@@ -125,7 +133,9 @@ export function LassoOverlay({
   const isBrush = mode === "brush";
   const d =
     points.length > 0
-      ? "M " + points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L ") + (isBrush ? "" : " Z")
+      ? "M " +
+        points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L ") +
+        (isBrush ? "" : " Z")
       : "";
 
   return (
@@ -137,7 +147,10 @@ export function LassoOverlay({
       onPointerUp={onUp}
       onPointerCancel={onUp}
       onDoubleClick={closePolygon}
-      onContextMenu={(e) => { e.preventDefault(); if (mode === "polygon") setPoints([]); }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        if (mode === "polygon") setPoints([]);
+      }}
     >
       {points.length > 0 && (
         <svg className="pointer-events-none absolute inset-0 h-full w-full">
@@ -160,10 +173,18 @@ export function LassoOverlay({
               strokeDasharray="6 4"
             />
           )}
-          {mode === "polygon" && points.map((p, i) => (
-            <circle key={i} cx={p.x} cy={p.y} r={4}
-              fill="hsl(var(--primary))" stroke="white" strokeWidth={1.5} />
-          ))}
+          {mode === "polygon" &&
+            points.map((p, i) => (
+              <circle
+                key={i}
+                cx={p.x}
+                cy={p.y}
+                r={4}
+                fill="hsl(var(--primary))"
+                stroke="white"
+                strokeWidth={1.5}
+              />
+            ))}
         </svg>
       )}
       <div className="pointer-events-none absolute left-1/2 top-2 flex -translate-x-1/2 items-center gap-2 rounded-full bg-primary px-3 py-1 text-xs font-medium text-primary-foreground shadow-lg">
@@ -174,7 +195,10 @@ export function LassoOverlay({
             : "Drag to freehand-lasso a region on the model"}
         {mode === "polygon" && points.length >= 3 && (
           <button
-            onClick={(e) => { e.stopPropagation(); closePolygon(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              closePolygon();
+            }}
             className="pointer-events-auto ml-1 rounded-full bg-primary-foreground/20 px-2 py-0.5 text-[10px] hover:bg-primary-foreground/30"
           >
             Close
@@ -217,9 +241,12 @@ function distToSegmentSq(p: Pt, v: Pt, w: Pt) {
 /** Rasterize a UV triangle into the mask canvas (full fill, not sparse dots). */
 function rasterizeUvTriangle(
   ctx: CanvasRenderingContext2D,
-  u0: number, v0: number,
-  u1: number, v1: number,
-  u2: number, v2: number,
+  u0: number,
+  v0: number,
+  u1: number,
+  v1: number,
+  u2: number,
+  v2: number,
   size: number,
 ) {
   ctx.beginPath();
@@ -231,10 +258,7 @@ function rasterizeUvTriangle(
 }
 
 /** True if screen triangle overlaps the selection region. */
-function screenTriOverlapsSelection(
-  p0: Pt, p1: Pt, p2: Pt,
-  inPoly: (pt: Pt) => boolean,
-): boolean {
+function screenTriOverlapsSelection(p0: Pt, p1: Pt, p2: Pt, inPoly: (pt: Pt) => boolean): boolean {
   const cx = (p0.x + p1.x + p2.x) / 3;
   const cy = (p0.y + p1.y + p2.y) / 3;
   if (inPoly({ x: cx, y: cy })) return true;
@@ -276,7 +300,10 @@ export function LassoComputer({ activePart, onMask, maskSize = 1024 }: ComputerP
     const W = rect.width;
     const H = rect.height;
 
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    let minX = Infinity,
+      minY = Infinity,
+      maxX = -Infinity,
+      maxY = -Infinity;
     const isBrush = mode === "brush";
     const padding = isBrush ? brushSize / 2 : 0;
 
@@ -286,7 +313,10 @@ export function LassoComputer({ activePart, onMask, maskSize = 1024 }: ComputerP
       if (p.x > maxX) maxX = p.x;
       if (p.y > maxY) maxY = p.y;
     }
-    minX -= padding; minY -= padding; maxX += padding; maxY += padding;
+    minX -= padding;
+    minY -= padding;
+    maxX += padding;
+    maxY += padding;
 
     const bRadSq = (brushSize / 2) ** 2;
 
@@ -329,7 +359,15 @@ export function LassoComputer({ activePart, onMask, maskSize = 1024 }: ComputerP
     }
 
     /** Depth-aware: only accept triangle if raycast at centroid hits this mesh first. */
-    function isFrontFacing(mesh: THREE.Mesh, w0: THREE.Vector3, w1: THREE.Vector3, w2: THREE.Vector3, sp0: Pt, sp1: Pt, sp2: Pt): boolean {
+    function isFrontFacing(
+      mesh: THREE.Mesh,
+      w0: THREE.Vector3,
+      w1: THREE.Vector3,
+      w2: THREE.Vector3,
+      sp0: Pt,
+      sp1: Pt,
+      sp2: Pt,
+    ): boolean {
       const cx = (sp0.x + sp1.x + sp2.x) / 3;
       const cy = (sp0.y + sp1.y + sp2.y) / 3;
       ndc.x = (cx / W) * 2 - 1;

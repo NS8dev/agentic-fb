@@ -8,9 +8,7 @@ import { canonicalTierMeta } from "@/lib/fabrixa/canonicalTiers";
 import { syncSubscriptionToSupabase } from "@/lib/fabrixa/userProfile";
 import { useInvalidateEntitlements } from "@/lib/fabrixa/entitlements";
 
-type Plan =
-  | { kind: "tier"; tierId: SubscriptionTier }
-  | { kind: "aiPack" };
+type Plan = { kind: "tier"; tierId: SubscriptionTier } | { kind: "aiPack" };
 
 declare global {
   interface Window {
@@ -107,9 +105,7 @@ export function useRazorpayCheckout() {
                     });
                   }
                   void invalidateEntitlements();
-                  toast.success(
-                    meta ? `Activated ${meta.label}` : "Plan activated",
-                  );
+                  toast.success(meta ? `Activated ${meta.label}` : "Plan activated");
                 } else {
                   activateAiPack();
                   toast.success("AI Pack activated");

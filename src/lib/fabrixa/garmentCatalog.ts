@@ -1,9 +1,5 @@
 import { GARMENT_TYPES, type GarmentType, type GarmentTypeId } from "./garments";
-import {
-  listBundledModelKeys,
-  normalizeModelKey,
-  resolveBundledGlbUrl,
-} from "./garmentAssets";
+import { listBundledModelKeys, normalizeModelKey, resolveBundledGlbUrl } from "./garmentAssets";
 
 const EXTRA_GARMENTS: GarmentType[] = [
   {
@@ -117,9 +113,7 @@ function buildAvailable(): GarmentType[] {
     if (hasBundledModel(g)) byId.set(g.id, g);
   }
   for (const key of listBundledModelKeys()) {
-    const matched = [...byId.values()].find(
-      (g) => normalizeModelKey(g.modelPath ?? "") === key,
-    );
+    const matched = [...byId.values()].find((g) => normalizeModelKey(g.modelPath ?? "") === key);
     if (matched) continue;
     const slug = key.replace(/\s+/g, "_");
     if (!byId.has(slug)) byId.set(slug, genericGarmentForKey(key));
@@ -130,9 +124,7 @@ function buildAvailable(): GarmentType[] {
 export const AVAILABLE_GARMENTS: GarmentType[] = buildAvailable();
 
 export const DEFAULT_GARMENT_ID: GarmentTypeId =
-  AVAILABLE_GARMENTS.find((g) => g.id === "shirt")?.id ??
-  AVAILABLE_GARMENTS[0]?.id ??
-  "shirt";
+  AVAILABLE_GARMENTS.find((g) => g.id === "shirt")?.id ?? AVAILABLE_GARMENTS[0]?.id ?? "shirt";
 
 export function isGarmentAvailable(id: GarmentTypeId): boolean {
   return AVAILABLE_GARMENTS.some((g) => g.id === id);

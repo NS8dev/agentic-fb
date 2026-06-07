@@ -1,29 +1,26 @@
-import path from 'path'
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
-import tsconfigPaths from 'vite-tsconfig-paths'
-import { tanstackStart } from '@tanstack/react-start/plugin/vite'
-import netlify from '@netlify/vite-plugin-tanstack-start'
+import path from "path";
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import tsconfigPaths from "vite-tsconfig-paths";
+import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import netlify from "@netlify/vite-plugin-tanstack-start";
 
 export default defineConfig({
   resolve: {
     alias: {
-      fabric: path.resolve(__dirname, 'node_modules/fabric/dist/index.js'),
-      'firebase/firestore': path.resolve(__dirname, 'node_modules/firebase/firestore/dist/esm/index.esm.js'),
+      fabric: path.resolve(__dirname, "node_modules/fabric/dist/index.js"),
+      "firebase/firestore": path.resolve(
+        __dirname,
+        "node_modules/firebase/firestore/dist/esm/index.esm.js",
+      ),
     },
   },
   optimizeDeps: {
     include: [
-      path.resolve(__dirname, 'node_modules/fabric/dist/index.js'),
-      path.resolve(__dirname, 'node_modules/firebase/firestore/dist/esm/index.esm.js'),
+      path.resolve(__dirname, "node_modules/fabric/dist/index.js"),
+      path.resolve(__dirname, "node_modules/firebase/firestore/dist/esm/index.esm.js"),
     ],
   },
-  plugins: [
-    tanstackStart(),
-    react(),
-    tailwindcss(),
-    netlify(),
-    tsconfigPaths()
-  ],
-})
+  plugins: [tanstackStart(), react(), tailwindcss(), netlify(), tsconfigPaths()],
+});

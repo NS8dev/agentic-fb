@@ -36,11 +36,7 @@ export function resolveMeshPartId(
   meshIndex: number,
 ): string {
   const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-  const candidates = [
-    mesh.name,
-    mesh.parent?.name ?? "",
-    ...mats.map((m) => m?.name ?? ""),
-  ];
+  const candidates = [mesh.name, mesh.parent?.name ?? "", ...mats.map((m) => m?.name ?? "")];
   for (const n of candidates) {
     const id = resolvePartIdFromNodeName(garment, n);
     if (id) return id;

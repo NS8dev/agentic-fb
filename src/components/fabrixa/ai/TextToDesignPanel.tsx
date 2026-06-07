@@ -74,7 +74,9 @@ export function TextToDesignPanel({ onGenerated }: TextToDesignPanelProps) {
         </p>
       </div>
       <div className="space-y-2">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Prompt</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Prompt
+        </Label>
         <Textarea
           placeholder="e.g., seamless Art Deco geometric pattern in gold and navy, medium scale repeat..."
           value={prompt}

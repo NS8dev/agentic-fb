@@ -64,7 +64,10 @@ export const Route = createFileRoute("/api/ai/generate")({
           }
 
           if (task === "sketchToDesign" && !body.referenceImage && !body.referenceImages?.length) {
-            return Response.json({ error: "referenceImage required for sketch-to-design" }, { status: 400 });
+            return Response.json(
+              { error: "referenceImage required for sketch-to-design" },
+              { status: 400 },
+            );
           }
 
           const size = body.size || "1024x1024";
@@ -99,7 +102,8 @@ export const Route = createFileRoute("/api/ai/generate")({
           });
         } catch (e) {
           const msg = e instanceof Error ? e.message : "AI failed";
-          const status = msg.includes("GEMINI_API_KEY") || msg.includes("GOOGLE_AI_API_KEY") ? 503 : 500;
+          const status =
+            msg.includes("GEMINI_API_KEY") || msg.includes("GOOGLE_AI_API_KEY") ? 503 : 500;
           return Response.json({ error: msg }, { status });
         }
       },

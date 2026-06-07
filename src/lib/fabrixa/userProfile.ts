@@ -1,11 +1,7 @@
 // Supabase `public.users` — provision on sign-in, sync subscription after payment.
 import { getSupabase } from "./supabase";
 import type { SubscriptionTier } from "./entitlements";
-import {
-  aiDailyCapFor,
-  dailyCoinsForTier,
-  showroomDailyCapFor,
-} from "./entitlements";
+import { aiDailyCapFor, dailyCoinsForTier, showroomDailyCapFor } from "./entitlements";
 import { canonicalTierMeta } from "./canonicalTiers";
 
 const DEFAULT_ROW = {
@@ -17,10 +13,7 @@ const DEFAULT_ROW = {
   dailyShowroomDownloadsCount: 0,
 };
 
-export async function ensureUserProfile(
-  userId: string,
-  email?: string | null,
-): Promise<void> {
+export async function ensureUserProfile(userId: string, email?: string | null): Promise<void> {
   const sb = getSupabase();
   const { data, error: readErr } = await sb
     .from("users")
@@ -63,9 +56,7 @@ export async function syncSubscriptionToSupabase(
   const meta = canonicalTierMeta(tierId);
   if (!meta) return;
 
-  const expiry = new Date(
-    Date.now() + meta.durationDays * 24 * 60 * 60 * 1000,
-  ).toISOString();
+  const expiry = new Date(Date.now() + meta.durationDays * 24 * 60 * 60 * 1000).toISOString();
   const daily = dailyCoinsForTier(tierId);
   const aiCap = aiDailyCapFor(tierId);
   const now = new Date().toISOString();

@@ -2,11 +2,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { getSupabase } from "./supabase";
 import { authCallbackUrl, resetPasswordUrl } from "./appOrigin";
-import {
-  getAuthState,
-  subscribeAuth,
-  type FabrixaUser,
-} from "./authStore";
+import { getAuthState, subscribeAuth, type FabrixaUser } from "./authStore";
 
 export type { FabrixaUser };
 
@@ -26,11 +22,7 @@ const SERVER_SNAPSHOT: { user: FabrixaUser | null; loading: boolean } = {
 };
 
 export function useAuth(): AuthState {
-  const state = useSyncExternalStore(
-    subscribeAuth,
-    getAuthState,
-    () => SERVER_SNAPSHOT,
-  );
+  const state = useSyncExternalStore(subscribeAuth, getAuthState, () => SERVER_SNAPSHOT);
 
   const signInEmail = useCallback(async (email: string, password: string) => {
     const { error } = await getSupabase().auth.signInWithPassword({
@@ -75,10 +67,9 @@ export function useAuth(): AuthState {
   }, []);
 
   const resetPassword = useCallback(async (email: string) => {
-    const { error } = await getSupabase().auth.resetPasswordForEmail(
-      email.trim(),
-      { redirectTo: resetPasswordUrl() },
-    );
+    const { error } = await getSupabase().auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: resetPasswordUrl(),
+    });
     if (error) throw error;
   }, []);
 

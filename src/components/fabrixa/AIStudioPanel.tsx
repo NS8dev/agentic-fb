@@ -38,11 +38,19 @@ export function AIStudioPanel({
   };
 
   const handleApply3d = (design: GeneratedDesign) => {
-    onResult(design.url, { task: design.task ?? "pattern", prompt: design.prompt, model: "ai" }, "apply_3d");
+    onResult(
+      design.url,
+      { task: design.task ?? "pattern", prompt: design.prompt, model: "ai" },
+      "apply_3d",
+    );
   };
 
   const handleEdit2d = (design: GeneratedDesign) => {
-    onResult(design.url, { task: design.task ?? "pattern", prompt: design.prompt, model: "ai" }, "edit_2d");
+    onResult(
+      design.url,
+      { task: design.task ?? "pattern", prompt: design.prompt, model: "ai" },
+      "edit_2d",
+    );
   };
 
   return (

@@ -45,7 +45,11 @@ function readLocal(): CreditLedger {
 }
 
 function writeLocal(l: CreditLedger) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(l)); } catch { /* ignore */ }
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(l));
+  } catch {
+    /* ignore */
+  }
 }
 
 export async function loadLedger(uid: string | null): Promise<CreditLedger> {
@@ -78,7 +82,9 @@ export async function saveLedger(uid: string | null, l: CreditLedger): Promise<v
   try {
     const ref = doc(getDb(), "users", uid, "credits", "ledger");
     await setDoc(ref, { ...l, updatedAt: serverTimestamp() }, { merge: true });
-  } catch { /* ignore */ }
+  } catch {
+    /* ignore */
+  }
 }
 
 function grantDailyIfNeeded(l: CreditLedger): CreditLedger {
@@ -108,20 +114,25 @@ export function canAffordAmount(l: CreditLedger, amount: number): boolean {
 }
 
 /** Spend a variable amount and bump the counter for an action. */
-export function spendAmount(
-  l: CreditLedger, action: CreditAction, amount: number,
-): CreditLedger {
+export function spendAmount(l: CreditLedger, action: CreditAction, amount: number): CreditLedger {
   const next: CreditLedger = {
     ...l,
     balance: Math.max(0, l.balance - amount),
     totals: { ...l.totals },
     today: { ...l.today, day: today() },
   };
-  if (action === "export") { next.totals.exports++; next.today.exports++; }
-  if (action === "aiImageGen" || action === "aiImageEdit" || action === "aiNeckDesign") {
-    next.totals.aiDesigns++; next.today.aiDesigns++;
+  if (action === "export") {
+    next.totals.exports++;
+    next.today.exports++;
   }
-  if (action === "render3d") { next.totals.renders3d++; next.today.renders3d++; }
+  if (action === "aiImageGen" || action === "aiImageEdit" || action === "aiNeckDesign") {
+    next.totals.aiDesigns++;
+    next.today.aiDesigns++;
+  }
+  if (action === "render3d") {
+    next.totals.renders3d++;
+    next.today.renders3d++;
+  }
   return next;
 }
 
@@ -134,10 +145,17 @@ export function spend(l: CreditLedger, action: CreditAction): CreditLedger {
     totals: { ...l.totals },
     today: { ...l.today, day: today() },
   };
-  if (action === "export") { next.totals.exports++; next.today.exports++; }
-  if (action === "aiImageGen" || action === "aiImageEdit" || action === "aiNeckDesign") {
-    next.totals.aiDesigns++; next.today.aiDesigns++;
+  if (action === "export") {
+    next.totals.exports++;
+    next.today.exports++;
   }
-  if (action === "render3d") { next.totals.renders3d++; next.today.renders3d++; }
+  if (action === "aiImageGen" || action === "aiImageEdit" || action === "aiNeckDesign") {
+    next.totals.aiDesigns++;
+    next.today.aiDesigns++;
+  }
+  if (action === "render3d") {
+    next.totals.renders3d++;
+    next.today.renders3d++;
+  }
   return next;
 }

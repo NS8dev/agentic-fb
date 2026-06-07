@@ -41,9 +41,15 @@ export function isAiDailyCapped(feature: FeatureCostKey): boolean {
 
 export type SubscriptionTier =
   | "none"
-  | "creator_1m"    | "creator_6m"    | "creator_1y"
-  | "studio_1m"     | "studio_6m"     | "studio_1y"
-  | "enterprise_1m" | "enterprise_6m" | "enterprise_1y";
+  | "creator_1m"
+  | "creator_6m"
+  | "creator_1y"
+  | "studio_1m"
+  | "studio_6m"
+  | "studio_1y"
+  | "enterprise_1m"
+  | "enterprise_6m"
+  | "enterprise_1y";
 
 export interface Entitlement {
   userId: string;
@@ -105,9 +111,7 @@ export function costOfFeature(f: FeatureCostKey): number {
   return (APP_DATA_0.coinCosts as any)[action] ?? 0;
 }
 
-export function tierFamily(
-  tier: SubscriptionTier,
-): "none" | "creator" | "studio" | "enterprise" {
+export function tierFamily(tier: SubscriptionTier): "none" | "creator" | "studio" | "enterprise" {
   if (tier === "none") return "none";
   if (tier.startsWith("creator")) return "creator";
   if (tier.startsWith("studio")) return "studio";
@@ -133,7 +137,6 @@ export function dailyCoinsForTier(tier: SubscriptionTier): number {
 }
 
 export const entitlementsKey = ["entitlements"] as const;
-
 
 async function fetchEntitlement(): Promise<Entitlement | null> {
   const sb = getSupabase();
@@ -210,10 +213,7 @@ function isPlanExpired(ent: Entitlement): boolean {
  * Returns null if allowed; otherwise a user-facing error string.
  * AI_GENERATION requires BOTH daily cap headroom AND sufficient coins (checked separately in runGated).
  */
-export function checkDailyCap(
-  ent: Entitlement,
-  feature: FeatureCostKey,
-): string | null {
+export function checkDailyCap(ent: Entitlement, feature: FeatureCostKey): string | null {
   if (isPlanExpired(ent)) return "Subscription expired.";
   const tier = ent.subscriptionTier;
   if (tier === "none") return null;
@@ -221,20 +221,14 @@ export function checkDailyCap(
   if (isAiDailyCapped(feature)) {
     const cap = aiDailyCapFor(tier);
     if (cap <= 0) return "AI is not included on your plan.";
-    if (
-      !isDailyResetDue(ent.lastDailyResetAt) &&
-      (ent.dailyAiRequestsRemaining ?? 0) <= 0
-    ) {
+    if (!isDailyResetDue(ent.lastDailyResetAt) && (ent.dailyAiRequestsRemaining ?? 0) <= 0) {
       return `Daily AI limit reached (${cap}/day).`;
     }
   }
 
   if (feature === "SHOWROOM_UNLOCK") {
     const cap = showroomDailyCapFor(tier);
-    if (
-      !isDailyResetDue(ent.lastDailyResetAt) &&
-      (ent.dailyShowroomDownloadsCount ?? 0) >= cap
-    ) {
+    if (!isDailyResetDue(ent.lastDailyResetAt) && (ent.dailyShowroomDownloadsCount ?? 0) >= cap) {
       return `Daily showroom download limit reached (${cap}/day).`;
     }
   }
@@ -242,10 +236,7 @@ export function checkDailyCap(
   return null;
 }
 
-export function checkCoinBalance(
-  ent: Entitlement,
-  feature: FeatureCostKey,
-): string | null {
+export function checkCoinBalance(ent: Entitlement, feature: FeatureCostKey): string | null {
   const cost = costOfFeature(feature);
   if (cost <= 0) return null;
   if ((ent.coinBalance ?? 0) < cost) {

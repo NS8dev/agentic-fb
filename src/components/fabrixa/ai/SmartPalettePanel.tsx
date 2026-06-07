@@ -101,7 +101,13 @@ export function SmartPalettePanel({
             <span className="text-xs text-muted-foreground">Upload design reference</span>
           </div>
         )}
-        <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          className="hidden"
+          onChange={handleFileUpload}
+        />
       </div>
       <div className="space-y-2">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -140,9 +146,7 @@ export function SmartPalettePanel({
                   style={{ backgroundColor: hex }}
                 />
                 <span className="text-[10px] font-mono text-muted-foreground">{hex}</span>
-                {names[i] && (
-                  <span className="text-[9px] text-muted-foreground">{names[i]}</span>
-                )}
+                {names[i] && <span className="text-[9px] text-muted-foreground">{names[i]}</span>}
               </button>
             ))}
           </div>

@@ -20,10 +20,10 @@ export type SelectionMode = "add" | "subtract" | "intersect" | "erase";
 export type SelectionTool = "lasso" | "polygon" | "brush";
 
 export interface MaskOptions {
-  feather: number;        // px gaussian softness applied at commit
-  opacity: number;        // 0..1 max alpha
-  expand: number;         // +grow / -shrink in px (morphological dilate)
-  symmetryX?: boolean;    // mirror strokes across vertical centre line
+  feather: number; // px gaussian softness applied at commit
+  opacity: number; // 0..1 max alpha
+  expand: number; // +grow / -shrink in px (morphological dilate)
+  symmetryX?: boolean; // mirror strokes across vertical centre line
 }
 
 export class SelectionMask {

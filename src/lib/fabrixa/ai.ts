@@ -145,7 +145,8 @@ async function generateViaGeminiApi(
 
 export async function generateImage(opts: GenerateOpts): Promise<GenerateResult> {
   const task = opts.task ?? "imageGen";
-  const model = (APP_DATA_0.ai.models as Record<string, string>)[task] ?? APP_DATA_0.ai.models.imageGen;
+  const model =
+    (APP_DATA_0.ai.models as Record<string, string>)[task] ?? APP_DATA_0.ai.models.imageGen;
   const size = opts.size ?? "1024x1024";
 
   if (isDemoMode()) {

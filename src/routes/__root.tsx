@@ -19,9 +19,7 @@ function NotFoundComponent() {
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
 
-        <h2 className="mt-4 text-xl font-semibold text-foreground">
-          Page not found
-        </h2>
+        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
 
         <p className="mt-2 text-sm text-muted-foreground">
           The page you're looking for doesn't exist or has been moved.
@@ -40,13 +38,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({
-  error,
-  reset,
-}: {
-  error: Error;
-  reset: () => void;
-}) {
+function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
 
   const router = useRouter();
@@ -59,8 +51,7 @@ function ErrorComponent({
         </h1>
 
         <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back
-          home.
+          Something went wrong on our end. You can try refreshing or head back home.
         </p>
 
         <div className="mt-6 flex flex-wrap justify-center gap-2">
@@ -86,135 +77,131 @@ function ErrorComponent({
   );
 }
 
-export const Route =
-  createRootRouteWithContext<{ queryClient: QueryClient }>()({
-    head: () => ({
-      meta: [
-        {
-          charSet: "utf-8",
-        },
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  head: () => ({
+    meta: [
+      {
+        charSet: "utf-8",
+      },
 
-        {
-          name: "viewport",
-          content: "width=device-width, initial-scale=1",
-        },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1",
+      },
 
-        {
-          title:
-            "Fabrixa | AI Textile Design Studio for Fabric & Garment Creation",
-        },
+      {
+        title: "Fabrixa | AI Textile Design Studio for Fabric & Garment Creation",
+      },
 
-        {
-          name: "description",
-          content:
-            "Fabrixa is an AI-powered textile and garment design studio for creating fabric patterns, textile artworks, and realistic 3D garment previews online.",
-        },
+      {
+        name: "description",
+        content:
+          "Fabrixa is an AI-powered textile and garment design studio for creating fabric patterns, textile artworks, and realistic 3D garment previews online.",
+      },
 
-        {
-          name: "keywords",
-          content:
-            "textile design, fabric design, garment design, AI textile studio, fashion design software, 3D garment preview, fabric pattern maker, textile CAD, fabric editor, textile software",
-        },
+      {
+        name: "keywords",
+        content:
+          "textile design, fabric design, garment design, AI textile studio, fashion design software, 3D garment preview, fabric pattern maker, textile CAD, fabric editor, textile software",
+      },
 
-        {
-          name: "author",
-          content: "Fabrixa",
-        },
+      {
+        name: "author",
+        content: "Fabrixa",
+      },
 
-        {
-          name: "robots",
-          content: "index, follow",
-        },
+      {
+        name: "robots",
+        content: "index, follow",
+      },
 
-        {
-          name: "theme-color",
-          content: "#000000",
-        },
+      {
+        name: "theme-color",
+        content: "#000000",
+      },
 
-        {
-          property: "og:title",
-          content:
-            "Fabrixa | AI Textile Design Studio for Fabric & Garment Creation",
-        },
+      {
+        property: "og:title",
+        content: "Fabrixa | AI Textile Design Studio for Fabric & Garment Creation",
+      },
 
-        {
-          property: "og:description",
-          content:
-            "Create textile patterns, design fabrics, and preview garments in realistic 3D using Fabrixa.",
-        },
+      {
+        property: "og:description",
+        content:
+          "Create textile patterns, design fabrics, and preview garments in realistic 3D using Fabrixa.",
+      },
 
-        {
-          property: "og:type",
-          content: "website",
-        },
+      {
+        property: "og:type",
+        content: "website",
+      },
 
-        {
-          property: "og:url",
-          content: "https://fabrixa.vercel.app",
-        },
+      {
+        property: "og:url",
+        content: "https://fabrixa.vercel.app",
+      },
 
-        {
-          property: "og:image",
-          content: "/logo.jpeg",
-        },
+      {
+        property: "og:image",
+        content: "/logo.jpeg",
+      },
 
-        {
-          property: "og:site_name",
-          content: "Fabrixa",
-        },
+      {
+        property: "og:site_name",
+        content: "Fabrixa",
+      },
 
-        {
-          name: "twitter:card",
-          content: "summary_large_image",
-        },
+      {
+        name: "twitter:card",
+        content: "summary_large_image",
+      },
 
-        {
-          name: "twitter:title",
-          content:
-            "Fabrixa | AI Textile Design Studio for Fabric & Garment Creation",
-        },
+      {
+        name: "twitter:title",
+        content: "Fabrixa | AI Textile Design Studio for Fabric & Garment Creation",
+      },
 
-        {
-          name: "twitter:description",
-          content:
-            "Design fabrics, create textile patterns, and preview garments in 3D with Fabrixa.",
-        },
+      {
+        name: "twitter:description",
+        content:
+          "Design fabrics, create textile patterns, and preview garments in 3D with Fabrixa.",
+      },
 
-        {
-          name: "twitter:image",
-          content: "/logo.jpeg",
-        },
-      ],
+      {
+        name: "twitter:image",
+        content: "/logo.jpeg",
+      },
+    ],
 
-      links: [
-        {
-          rel: "stylesheet",
-          href: appCss,
-        },
+    links: [
+      {
+        rel: "stylesheet",
+        href: appCss,
+      },
 
-        {
-          rel: "icon",
-          type: "image/jpeg",
-          href: "/logo.jpeg",
-        },
+      {
+        rel: "icon",
+        type: "image/jpeg",
+        href: "/logo.jpeg",
+      },
 
-        {
-          rel: "canonical",
-          href: "https://fabrixa.vercel.app",
-        },
+      {
+        rel: "canonical",
+        href: "https://fabrixa.vercel.app",
+      },
 
-        {
-          rel: "apple-touch-icon",
-          href: "/logo.jpeg",
-        },
-      ],
-    }),
+      {
+        rel: "apple-touch-icon",
+        href: "/logo.jpeg",
+      },
+    ],
+  }),
 
-    shellComponent: RootShell,
-    component: RootComponent,
-    notFoundComponent: NotFoundComponent,
-    errorComponent: ErrorComponent,
-  });
+  shellComponent: RootShell,
+  component: RootComponent,
+  notFoundComponent: NotFoundComponent,
+  errorComponent: ErrorComponent,
+});
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
@@ -242,37 +229,23 @@ function RootComponent() {
 
     const sb = getSupabase();
 
-    const { data: sub } = sb.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === "PASSWORD_RECOVERY") return;
+    const { data: sub } = sb.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") return;
 
-        if (
-          (event === "SIGNED_IN" ||
-            event === "INITIAL_SESSION") &&
-          session
-        ) {
-          if (window.location.hash.includes("access_token")) {
-            history.replaceState(
-              null,
-              "",
-              window.location.pathname +
-                window.location.search
-            );
-          }
-        }
-
-        if (event === "SIGNED_OUT") {
-          const path = window.location.pathname;
-
-          if (
-            path !== "/" &&
-            path !== "/reset-password"
-          ) {
-            void router.navigate({ to: "/" });
-          }
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) {
+        if (window.location.hash.includes("access_token")) {
+          history.replaceState(null, "", window.location.pathname + window.location.search);
         }
       }
-    );
+
+      if (event === "SIGNED_OUT") {
+        const path = window.location.pathname;
+
+        if (path !== "/" && path !== "/reset-password") {
+          void router.navigate({ to: "/" });
+        }
+      }
+    });
 
     return () => sub.subscription.unsubscribe();
   }, [router]);

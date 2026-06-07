@@ -10,8 +10,16 @@
 // existing UI call-sites compile without writing to non-existent tables.
 // =============================================================
 import {
-  doc, getDoc, setDoc, collection, serverTimestamp, getDocs, query,
-  where, orderBy, deleteDoc,
+  doc,
+  getDoc,
+  setDoc,
+  collection,
+  serverTimestamp,
+  getDocs,
+  query,
+  where,
+  orderBy,
+  deleteDoc,
 } from "firebase/firestore";
 import { getDb } from "@/lib/firebase";
 import type { PartState } from "@/lib/fabrixa/garments";
@@ -140,7 +148,21 @@ export async function listShowroomDesigns(): Promise<ShowroomDesign[]> {
 // ---------- legacy record-* helpers ----------
 // Schema explicitly forbids exports / aiDesigns / renders3d collections.
 // These are no-ops so existing call-sites compile cleanly.
-export async function recordExport(_uid: string, _info: { format: string; quality: string; bytes?: number }) { /* no-op */ }
-export async function recordAiDesign(_uid: string, _info: { task: string; prompt: string; model: string }) { /* no-op */ }
-export async function recordRender3d(_uid: string, _info: { typeId: string; scene: string }) { /* no-op */ }
-export async function listRecentExports(_uid: string, _n = 20): Promise<unknown[]> { return []; }
+export async function recordExport(
+  _uid: string,
+  _info: { format: string; quality: string; bytes?: number },
+) {
+  /* no-op */
+}
+export async function recordAiDesign(
+  _uid: string,
+  _info: { task: string; prompt: string; model: string },
+) {
+  /* no-op */
+}
+export async function recordRender3d(_uid: string, _info: { typeId: string; scene: string }) {
+  /* no-op */
+}
+export async function listRecentExports(_uid: string, _n = 20): Promise<unknown[]> {
+  return [];
+}

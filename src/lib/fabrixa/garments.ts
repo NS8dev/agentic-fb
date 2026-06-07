@@ -18,9 +18,9 @@ export interface PartDef {
 export interface DesignLayer {
   id: string;
   name: string;
-  maskUrl: string | null;     // UV-space alpha mask defining the boundary
-  contentDataUrl: string;     // Rasterized design/pattern for this layer
-  contentJson?: string;       // Original Fabric.js JSON state for re-editing
+  maskUrl: string | null; // UV-space alpha mask defining the boundary
+  contentDataUrl: string; // Rasterized design/pattern for this layer
+  contentJson?: string; // Original Fabric.js JSON state for re-editing
   visible: boolean;
   opacity: number;
   /** When true, layer cannot be edited or deleted. */
@@ -42,8 +42,8 @@ export interface PartState {
   /** Stack of applied design layers */
   layers: DesignLayer[];
 
-  textureScale: number;      // tile count (repeat)
-  textureRotation: number;   // degrees
+  textureScale: number; // tile count (repeat)
+  textureRotation: number; // degrees
   textureOffsetX: number;
   textureOffsetY: number;
   /** Spacing between tiles, 0–50 (% of tile size). White base shows through. */
@@ -80,7 +80,7 @@ export const defaultPartState = (_defaultColor: string): PartState => ({
   textureOffsetY: 0,
   tileGap: 0,
   fabricPreset: "cotton",
-  // "world" mode (triplanar) is the gold standard for realistic clothing — 
+  // "world" mode (triplanar) is the gold standard for realistic clothing —
   // no seams, consistent scale across all garment parts.
   tilingMode: "world",
   worldTilingScale: 0.2,
@@ -90,10 +90,23 @@ export const defaultPartState = (_defaultColor: string): PartState => ({
 });
 
 export type GarmentTypeId =
-  | "shirt" | "tshirt" | "pant" | "trackpants" | "hoodie"
-  | "skirt" | "lehenga" | "gown" | "kurti" | "kurta" | "salwar"
-  | "coat" | "plazo" | "jacket" | "dress"
-  | "kurti_long" | "kurti_long_neck";
+  | "shirt"
+  | "tshirt"
+  | "pant"
+  | "trackpants"
+  | "hoodie"
+  | "skirt"
+  | "lehenga"
+  | "gown"
+  | "kurti"
+  | "kurta"
+  | "salwar"
+  | "coat"
+  | "plazo"
+  | "jacket"
+  | "dress"
+  | "kurti_long"
+  | "kurti_long_neck";
 
 export interface GarmentType {
   id: GarmentTypeId;
@@ -107,137 +120,260 @@ export interface GarmentType {
   meshMap?: Record<string, string>;
 }
 
-const P = (id: string, label: string, defaultColor: string): PartDef => ({ id, label, defaultColor });
+const P = (id: string, label: string, defaultColor: string): PartDef => ({
+  id,
+  label,
+  defaultColor,
+});
 
 export const GARMENT_TYPES: GarmentType[] = [
   {
-    id: "shirt", label: "Shirt", emoji: "🧑‍💼", gender: "men",
-    parts: [P("body", "Shirt Body", "#dfe9f3"), P("sleeves", "Sleeves", "#dfe9f3"), P("collar", "Collar", "#dfe9f3"), P("cuffs", "Cuffs", "#dfe9f3"), P("buttons", "Buttons", "#222")],
+    id: "shirt",
+    label: "Shirt",
+    emoji: "🧑‍💼",
+    gender: "men",
+    parts: [
+      P("body", "Shirt Body", "#dfe9f3"),
+      P("sleeves", "Sleeves", "#dfe9f3"),
+      P("collar", "Collar", "#dfe9f3"),
+      P("cuffs", "Cuffs", "#dfe9f3"),
+      P("buttons", "Buttons", "#222"),
+    ],
     modelPath: "models/shirt.glb",
-    meshMap: { body: "body", sleeve: "sleeves", collar: "collar", cuff: "cuffs", button: "buttons" },
+    meshMap: {
+      body: "body",
+      sleeve: "sleeves",
+      collar: "collar",
+      cuff: "cuffs",
+      button: "buttons",
+    },
   },
   {
-    id: "tshirt", label: "T-Shirt", emoji: "👕", gender: "unisex",
-    parts: [P("body", "Body", "#ffffff"), P("sleeves", "Sleeves", "#ffffff"), P("collar", "Collar", "#dddddd")],
+    id: "tshirt",
+    label: "T-Shirt",
+    emoji: "👕",
+    gender: "unisex",
+    parts: [
+      P("body", "Body", "#ffffff"),
+      P("sleeves", "Sleeves", "#ffffff"),
+      P("collar", "Collar", "#dddddd"),
+    ],
     modelPath: "models/tshirt.glb",
     meshMap: { body: "body", sleeve: "sleeves", collar: "collar", neck: "collar" },
   },
   {
-    id: "pant", label: "Pant", emoji: "👖", gender: "unisex",
-    parts: [P("legs", "Legs", "#2e3b55"), P("waistband", "Waistband", "#1c2538"), P("pocket", "Pockets", "#1c2538")],
+    id: "pant",
+    label: "Pant",
+    emoji: "👖",
+    gender: "unisex",
+    parts: [
+      P("legs", "Legs", "#2e3b55"),
+      P("waistband", "Waistband", "#1c2538"),
+      P("pocket", "Pockets", "#1c2538"),
+    ],
     modelPath: "models/pant.glb",
     meshMap: { leg: "legs", waist: "waistband", pocket: "pocket" },
   },
   {
-    id: "trackpants", label: "Trackpants", emoji: "🏃", gender: "unisex",
-    parts: [P("legs", "Legs", "#1a1a1a"), P("waistband", "Waistband", "#3a3a3a"), P("stripes", "Side Stripes", "#ffffff")],
+    id: "trackpants",
+    label: "Trackpants",
+    emoji: "🏃",
+    gender: "unisex",
+    parts: [
+      P("legs", "Legs", "#1a1a1a"),
+      P("waistband", "Waistband", "#3a3a3a"),
+      P("stripes", "Side Stripes", "#ffffff"),
+    ],
     modelPath: "models/trackpants.glb",
     meshMap: { leg: "legs", waist: "waistband", stripe: "stripes" },
   },
   {
-    id: "hoodie", label: "Hoodie", emoji: "🧥", gender: "unisex",
-    parts: [P("body", "Body", "#2b2b2b"), P("sleeves", "Sleeves", "#2b2b2b"), P("hood", "Hood", "#2b2b2b"), P("pocket", "Pocket", "#2b2b2b"), P("cuffs", "Cuffs", "#1a1a1a")],
+    id: "hoodie",
+    label: "Hoodie",
+    emoji: "🧥",
+    gender: "unisex",
+    parts: [
+      P("body", "Body", "#2b2b2b"),
+      P("sleeves", "Sleeves", "#2b2b2b"),
+      P("hood", "Hood", "#2b2b2b"),
+      P("pocket", "Pocket", "#2b2b2b"),
+      P("cuffs", "Cuffs", "#1a1a1a"),
+    ],
     modelPath: "models/hoodie.glb",
     meshMap: { body: "body", sleeve: "sleeves", hood: "hood", pocket: "pocket", cuff: "cuffs" },
   },
   {
-    id: "skirt", label: "Skirt", emoji: "👗", gender: "women",
+    id: "skirt",
+    label: "Skirt",
+    emoji: "👗",
+    gender: "women",
     parts: [P("skirt", "Skirt", "#7a3b8c"), P("waistband", "Waistband", "#2d1f3a")],
     modelPath: "models/skirt.glb",
     meshMap: { skirt: "skirt", waist: "waistband" },
   },
   {
-    id: "lehenga", label: "Lehenga", emoji: "💃", gender: "women",
-    parts: [P("skirt", "Lehenga Skirt", "#b8002a"), P("blouse", "Choli/Blouse", "#7a0020"), P("dupatta", "Dupatta", "#e6c200"), P("border", "Border", "#d4af37")],
+    id: "lehenga",
+    label: "Lehenga",
+    emoji: "💃",
+    gender: "women",
+    parts: [
+      P("skirt", "Lehenga Skirt", "#b8002a"),
+      P("blouse", "Choli/Blouse", "#7a0020"),
+      P("dupatta", "Dupatta", "#e6c200"),
+      P("border", "Border", "#d4af37"),
+    ],
     modelPath: "models/lehenga.glb",
-    meshMap: { skirt: "skirt", lehenga: "skirt", choli: "blouse", blouse: "blouse", dupatta: "dupatta", border: "border" },
+    meshMap: {
+      skirt: "skirt",
+      lehenga: "skirt",
+      choli: "blouse",
+      blouse: "blouse",
+      dupatta: "dupatta",
+      border: "border",
+    },
   },
   {
-    id: "gown", label: "Gown", emoji: "👰", gender: "women",
-    parts: [P("bodice", "Bodice", "#3b3b6e"), P("skirt", "Flowing Skirt", "#3b3b6e"), P("sleeves", "Sleeves", "#3b3b6e"), P("trim", "Trim", "#d4af37")],
+    id: "gown",
+    label: "Gown",
+    emoji: "👰",
+    gender: "women",
+    parts: [
+      P("bodice", "Bodice", "#3b3b6e"),
+      P("skirt", "Flowing Skirt", "#3b3b6e"),
+      P("sleeves", "Sleeves", "#3b3b6e"),
+      P("trim", "Trim", "#d4af37"),
+    ],
     modelPath: "models/gown.glb",
     meshMap: { bodice: "bodice", skirt: "skirt", sleeve: "sleeves", trim: "trim" },
   },
   {
-    id: "kurti", label: "Kurti", emoji: "🌸", gender: "women",
-    parts: [P("body", "Kurti Body", "#e8c4d8"), P("sleeves", "Sleeves", "#e8c4d8"), P("neckline", "Neckline", "#b8860b"), P("hem", "Hem", "#b8860b")],
+    id: "kurti",
+    label: "Kurti",
+    emoji: "🌸",
+    gender: "women",
+    parts: [
+      P("body", "Kurti Body", "#e8c4d8"),
+      P("sleeves", "Sleeves", "#e8c4d8"),
+      P("neckline", "Neckline", "#b8860b"),
+      P("hem", "Hem", "#b8860b"),
+    ],
     modelPath: "models/kurti.glb",
     meshMap: { body: "body", sleeve: "sleeves", neck: "neckline", hem: "hem" },
   },
   {
-  id: "kurti_long",
-  label: "Kurti (Long)",
-  emoji: "👗",
-  gender: "women",
-  parts: [
-    P("body", "Body", "#f5e6ff"),
-    P("sleeves", "Sleeves", "#f5e6ff"),
-    P("hem", "Hem", "#e8d2ff"),
-  ],
-  modelPath: "models/kurti_long.glb",
-  meshMap: {
-    body: "body",
-    sleeve: "sleeves",
-    hem: "hem",
+    id: "kurti_long",
+    label: "Kurti (Long)",
+    emoji: "👗",
+    gender: "women",
+    parts: [
+      P("body", "Body", "#f5e6ff"),
+      P("sleeves", "Sleeves", "#f5e6ff"),
+      P("hem", "Hem", "#e8d2ff"),
+    ],
+    modelPath: "models/kurti_long.glb",
+    meshMap: {
+      body: "body",
+      sleeve: "sleeves",
+      hem: "hem",
+    },
   },
-},
-{
-  id: "kurti_long_neck",
-  label: "Kurti (Long Neck)",
-  emoji: "👗",
-  gender: "women",
-  parts: [
-    P("body", "Body", "#f5e6ff"),
-    P("sleeves", "Sleeves", "#f5e6ff"),
-    P("neck", "Neck Design", "#d9b3ff"),
-    P("hem", "Hem", "#e8d2ff"),
-  ],
-  modelPath: "models/kurti_long_neck.glb",
-  meshMap: {
-    body: "body",
-    sleeve: "sleeves",
-    neck: "neck",
-    hem: "hem",
-  },
-},
   {
-    id: "kurta", label: "Kurta", emoji: "🕴️", gender: "men",
-    parts: [P("body", "Kurta Body", "#f4f1e8"), P("sleeves", "Sleeves", "#f4f1e8"), P("collar", "Mandarin Collar", "#d4af37"), P("placket", "Placket", "#d4af37"), P("buttons", "Buttons", "#3b1f1f")],
+    id: "kurti_long_neck",
+    label: "Kurti (Long Neck)",
+    emoji: "👗",
+    gender: "women",
+    parts: [
+      P("body", "Body", "#f5e6ff"),
+      P("sleeves", "Sleeves", "#f5e6ff"),
+      P("neck", "Neck Design", "#d9b3ff"),
+      P("hem", "Hem", "#e8d2ff"),
+    ],
+    modelPath: "models/kurti_long_neck.glb",
+    meshMap: {
+      body: "body",
+      sleeve: "sleeves",
+      neck: "neck",
+      hem: "hem",
+    },
+  },
+  {
+    id: "kurta",
+    label: "Kurta",
+    emoji: "🕴️",
+    gender: "men",
+    parts: [
+      P("body", "Kurta Body", "#f4f1e8"),
+      P("sleeves", "Sleeves", "#f4f1e8"),
+      P("collar", "Mandarin Collar", "#d4af37"),
+      P("placket", "Placket", "#d4af37"),
+      P("buttons", "Buttons", "#3b1f1f"),
+    ],
     modelPath: "models/kurta.glb",
-    meshMap: { body: "body", sleeve: "sleeves", collar: "collar", placket: "placket", button: "buttons" },
+    meshMap: {
+      body: "body",
+      sleeve: "sleeves",
+      collar: "collar",
+      placket: "placket",
+      button: "buttons",
+    },
   },
   {
-    id: "salwar", label: "Salwar", emoji: "👖", gender: "women",
-    parts: [P("legs", "Legs", "#f5e6d3"), P("waistband", "Waistband", "#d4a4c8"), P("cuffs", "Ankle Cuffs", "#b8860b")],
+    id: "salwar",
+    label: "Salwar",
+    emoji: "👖",
+    gender: "women",
+    parts: [
+      P("legs", "Legs", "#f5e6d3"),
+      P("waistband", "Waistband", "#d4a4c8"),
+      P("cuffs", "Ankle Cuffs", "#b8860b"),
+    ],
     modelPath: "models/salwar.glb",
     meshMap: { leg: "legs", waist: "waistband", cuff: "cuffs", ankle: "cuffs" },
   },
   {
-    id: "coat", label: "Coat", emoji: "🧥", gender: "unisex",
-    parts: [P("body", "Coat Body", "#2c2c34"), P("sleeves", "Sleeves", "#2c2c34"), P("lapel", "Lapel", "#1a1a22"), P("buttons", "Buttons", "#b8860b"), P("collar", "Collar", "#2c2c34")],
+    id: "coat",
+    label: "Coat",
+    emoji: "🧥",
+    gender: "unisex",
+    parts: [
+      P("body", "Coat Body", "#2c2c34"),
+      P("sleeves", "Sleeves", "#2c2c34"),
+      P("lapel", "Lapel", "#1a1a22"),
+      P("buttons", "Buttons", "#b8860b"),
+      P("collar", "Collar", "#2c2c34"),
+    ],
     modelPath: "models/coat.glb",
-    meshMap: { body: "body", sleeve: "sleeves", lapel: "lapel", button: "buttons", collar: "collar" },
+    meshMap: {
+      body: "body",
+      sleeve: "sleeves",
+      lapel: "lapel",
+      button: "buttons",
+      collar: "collar",
+    },
   },
   {
-  id: "plazo", label: "Plazo", emoji: "🎽", gender: "women",
-  parts: [P("legs", "Flared Legs", "#3a2e55"), P("waistband", "Waistband", "#2a1f3a")],
-  modelPath: "models/plazo.glb",
-  meshMap: {
-    leg: "legs",
-    legs: "legs",
-    left_leg: "legs",
-    right_leg: "legs",
-    pant: "legs",
-    pants: "legs",
-    plazo: "legs",
-    palazzo: "legs",
+    id: "plazo",
+    label: "Plazo",
+    emoji: "🎽",
+    gender: "women",
+    parts: [P("legs", "Flared Legs", "#3a2e55"), P("waistband", "Waistband", "#2a1f3a")],
+    modelPath: "models/plazo.glb",
+    meshMap: {
+      leg: "legs",
+      legs: "legs",
+      left_leg: "legs",
+      right_leg: "legs",
+      pant: "legs",
+      pants: "legs",
+      plazo: "legs",
+      palazzo: "legs",
 
-    waist: "waistband",
-    waistband: "waistband",
-    belt: "waistband",
-    band: "waistband",
+      waist: "waistband",
+      waistband: "waistband",
+      belt: "waistband",
+      band: "waistband",
+    },
   },
-},
 ];
 
 export const getGarment = (id: GarmentTypeId): GarmentType =>
@@ -256,7 +392,10 @@ export const initStatesFor = (g: GarmentType): Record<string, PartState> => {
  * Lowercases the node name and does a substring match against each map key.
  * Falls back to "body" / first part / null.
  */
-export function resolvePartIdFromNodeName(g: GarmentType, nodeName: string | undefined | null): string | null {
+export function resolvePartIdFromNodeName(
+  g: GarmentType,
+  nodeName: string | undefined | null,
+): string | null {
   if (!nodeName) return null;
   const lower = nodeName.toLowerCase();
   const map = g.meshMap ?? {};

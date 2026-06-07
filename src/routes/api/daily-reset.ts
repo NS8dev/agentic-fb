@@ -32,9 +32,8 @@ export const Route = createFileRoute("/api/daily-reset")({
           reset: true,
           uid,
           coinBalance: tier.dailyAllowance,
-          dailyAiRequestsRemaining: tier.aiIncluded || hasAiPack
-            ? APP_DATA_0.aiPack.dailyRequests
-            : 0,
+          dailyAiRequestsRemaining:
+            tier.aiIncluded || hasAiPack ? APP_DATA_0.aiPack.dailyRequests : 0,
           dailyShowroomDownloadsCount: 0,
           lastDailyResetAt: now,
         });

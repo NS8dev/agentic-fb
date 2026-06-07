@@ -47,17 +47,13 @@ export function AuthForm({ onSuccess, variant = "plain" }: FormProps) {
     e.preventDefault();
     if (!email || !password) return;
 
-    const matched = ADMIN_USERS.find(
-      (u) => u.id === email.trim() && u.password === password,
-    );
+    const matched = ADMIN_USERS.find((u) => u.id === email.trim() && u.password === password);
     if (matched || (email.trim() === "admindemo" && password === "admindemo")) {
       setAdminMode(true);
-      toast.success(
-        matched ? `Admin bypass — ${matched.label}` : "Admin bypass — Full access",
-      );
+      toast.success(matched ? `Admin bypass — ${matched.label}` : "Admin bypass — Full access");
       // Close dialog immediately
       onSuccess?.();
-      // Force a slight delay to ensure Zustand state propagates if needed, 
+      // Force a slight delay to ensure Zustand state propagates if needed,
       // though Zustand is synchronous, some UI patterns benefit from a tick.
       return;
     }
@@ -73,9 +69,7 @@ export function AuthForm({ onSuccess, variant = "plain" }: FormProps) {
         toast.success("Check your email to confirm, then sign in.");
       }
     } catch (err) {
-      toast.error(
-        cleanMsg(err instanceof Error ? err.message : "Authentication failed"),
-      );
+      toast.error(cleanMsg(err instanceof Error ? err.message : "Authentication failed"));
     } finally {
       setBusy(false);
     }
@@ -86,9 +80,7 @@ export function AuthForm({ onSuccess, variant = "plain" }: FormProps) {
     try {
       await signInGoogle();
     } catch (err) {
-      toast.error(
-        cleanMsg(err instanceof Error ? err.message : "Google sign-in failed"),
-      );
+      toast.error(cleanMsg(err instanceof Error ? err.message : "Google sign-in failed"));
       setBusy(false);
     }
   };
@@ -102,18 +94,12 @@ export function AuthForm({ onSuccess, variant = "plain" }: FormProps) {
       await resetPassword(email);
       toast.success("Password reset email sent");
     } catch (err) {
-      toast.error(
-        cleanMsg(err instanceof Error ? err.message : "Failed to send reset email"),
-      );
+      toast.error(cleanMsg(err instanceof Error ? err.message : "Failed to send reset email"));
     }
   };
 
   const wrap =
-    variant === "card"
-      ? "rounded-2xl border bg-card p-6 shadow-xl"
-      : variant === "glass"
-        ? ""
-        : "";
+    variant === "card" ? "rounded-2xl border bg-card p-6 shadow-xl" : variant === "glass" ? "" : "";
 
   const showHeader = variant === "card" || variant === "glass";
 

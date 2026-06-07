@@ -60,7 +60,7 @@ class TextureCache {
       };
       image.onerror = () => {
         // graceful fallback — leave entry untextured; consumers see base color
-        // eslint-disable-next-line no-console
+
         console.warn("[fabrixa] texture failed to load:", src.slice(0, 60));
       };
       image.src = src;
@@ -123,7 +123,11 @@ class TextureCache {
   clear() {
     for (const entry of this.entries.values()) {
       for (const t of entry.textures) {
-        try { t.dispose(); } catch { /* ignore */ }
+        try {
+          t.dispose();
+        } catch {
+          /* ignore */
+        }
       }
     }
     this.entries.clear();
@@ -196,8 +200,10 @@ export function gradientToDataUrl(
   const x = Math.cos(a) * size;
   const y = Math.sin(a) * size;
   const g = ctx.createLinearGradient(
-    (size - x) / 2, (size - y) / 2,
-    (size + x) / 2, (size + y) / 2,
+    (size - x) / 2,
+    (size - y) / 2,
+    (size + x) / 2,
+    (size + y) / 2,
   );
   for (const s of stops) g.addColorStop(Math.max(0, Math.min(1, s.offset)), s.color);
   ctx.fillStyle = g;

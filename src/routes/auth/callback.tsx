@@ -25,10 +25,7 @@ function AuthCallback() {
         return;
       }
       if (data.session?.user) {
-        await ensureUserProfile(
-          data.session.user.id,
-          data.session.user.email ?? null,
-        );
+        await ensureUserProfile(data.session.user.id, data.session.user.email ?? null);
       }
       if (window.location.hash.includes("access_token")) {
         history.replaceState(null, "", window.location.pathname);
@@ -37,10 +34,7 @@ function AuthCallback() {
     };
 
     const { data: sub } = sb.auth.onAuthStateChange((event, session) => {
-      if (
-        (event === "SIGNED_IN" || event === "INITIAL_SESSION") &&
-        session
-      ) {
+      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session) {
         void finish();
       }
     });

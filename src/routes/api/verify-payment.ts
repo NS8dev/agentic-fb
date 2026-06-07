@@ -10,9 +10,7 @@ import {
   type SubscriptionTier,
 } from "@/lib/fabrixa/entitlements";
 
-type Plan =
-  | { kind: "tier"; tierId: SubscriptionTier }
-  | { kind: "aiPack" };
+type Plan = { kind: "tier"; tierId: SubscriptionTier } | { kind: "aiPack" };
 
 interface VerifyBody {
   razorpay_payment_id: string;
@@ -28,9 +26,7 @@ function verifySignature(
   signature: string,
   secret: string,
 ): boolean {
-  const expected = createHmac("sha256", secret)
-    .update(`${orderId}|${paymentId}`)
-    .digest("hex");
+  const expected = createHmac("sha256", secret).update(`${orderId}|${paymentId}`).digest("hex");
   try {
     const a = Buffer.from(expected, "utf8");
     const b = Buffer.from(signature, "utf8");

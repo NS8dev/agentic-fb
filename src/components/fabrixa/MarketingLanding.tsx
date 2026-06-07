@@ -4,12 +4,24 @@ import { AuthForm } from "@/components/fabrixa/AuthDialog";
 import { useAuth } from "@/lib/fabrixa/useAuth";
 
 const FEATURES = [
-  { icon: Palette, title: "2D textile editor", desc: "Patterns, gradients, and production-ready exports." },
-  { icon: Box, title: "Live 3D garments", desc: "Real meshes for kurtis, gowns, shirts, and more." },
+  {
+    icon: Palette,
+    title: "2D textile editor",
+    desc: "Patterns, gradients, and production-ready exports.",
+  },
+  {
+    icon: Box,
+    title: "Live 3D garments",
+    desc: "Real meshes for kurtis, gowns, shirts, and more.",
+  },
   { icon: Wand2, title: "AI studio", desc: "Tiered daily AI with coin-based usage." },
   { icon: Layers, title: "Cloud projects", desc: "Save and resume designs securely." },
   { icon: Shield, title: "Subscription tiers", desc: "Creator, Studio, and Enterprise plans." },
-  { icon: Zap, title: "HD & showroom", desc: "4K renders and showroom unlocks when you need them." },
+  {
+    icon: Zap,
+    title: "HD & showroom",
+    desc: "4K renders and showroom unlocks when you need them.",
+  },
 ];
 
 const SLOGANS = [
@@ -47,8 +59,8 @@ export function MarketingLanding() {
                 </span>
               </h1>
               <p className="max-w-lg text-base leading-relaxed text-muted-foreground">
-                Fabrixa unites a premium 2D canvas with real garment meshes — so your
-                team sees drape, color, and repeat before a single sample is cut.
+                Fabrixa unites a premium 2D canvas with real garment meshes — so your team sees
+                drape, color, and repeat before a single sample is cut.
               </p>
             </div>
 

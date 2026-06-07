@@ -4,14 +4,34 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Input } from "@/components/ui/input";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from "@/components/ui/select";
 import {
-  Eye, EyeOff, Lock, Unlock, Pencil, Trash2, Link2, Unlink,
-  ChevronUp, ChevronDown, Plus, Layers, Palette,
+  Eye,
+  EyeOff,
+  Lock,
+  Unlock,
+  Pencil,
+  Trash2,
+  Link2,
+  Unlink,
+  ChevronUp,
+  ChevronDown,
+  Plus,
+  Layers,
+  Palette,
 } from "lucide-react";
 import type { DesignLayer } from "@/lib/fabrixa/garments";
 import { newLinkGroupId } from "@/lib/fabrixa/layerUtils";
@@ -146,10 +166,21 @@ export function LayersPanel3D({
         <div className="flex items-center justify-between rounded-md border border-dashed border-primary/30 bg-background/40 px-2 py-1.5">
           <span className="text-[10px] text-muted-foreground">3D selection active</span>
           <div className="flex gap-1">
-            <Button size="sm" variant="default" className="h-6 px-2 text-[10px]" onClick={onCreateFromSelection}>
-              <Palette className="h-3 w-3 mr-1" />Create layer
+            <Button
+              size="sm"
+              variant="default"
+              className="h-6 px-2 text-[10px]"
+              onClick={onCreateFromSelection}
+            >
+              <Palette className="h-3 w-3 mr-1" />
+              Create layer
             </Button>
-            <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px] text-destructive" onClick={onClearSelection}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-6 px-2 text-[10px] text-destructive"
+              onClick={onClearSelection}
+            >
               Clear
             </Button>
           </div>
@@ -177,9 +208,15 @@ export function LayersPanel3D({
                 <div className="flex items-center gap-1.5">
                   <div className="h-8 w-8 shrink-0 overflow-hidden rounded border border-white/10 bg-[conic-gradient(at_50%_50%,#e9e9ef_25%,#fafafa_0_50%,#e9e9ef_0_75%,#fafafa_0)] bg-[length:8px_8px]">
                     {layer.contentDataUrl ? (
-                      <img src={layer.contentDataUrl} alt="" className="h-full w-full object-cover" />
+                      <img
+                        src={layer.contentDataUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
-                      <div className="flex h-full w-full items-center justify-center text-[8px] text-muted-foreground">empty</div>
+                      <div className="flex h-full w-full items-center justify-center text-[8px] text-muted-foreground">
+                        empty
+                      </div>
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -217,7 +254,10 @@ export function LayersPanel3D({
                         )}
                       </button>
                     )}
-                    <div className="flex items-center gap-1 mt-0.5" onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className="flex items-center gap-1 mt-0.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <Slider
                         className="flex-1"
                         value={[Math.round(layer.opacity * 100)]}
@@ -227,59 +267,107 @@ export function LayersPanel3D({
                         disabled={layer.locked}
                         onValueChange={([v]) => updateLayer(layer.id, { opacity: v / 100 })}
                       />
-                      <span className="text-[9px] tabular-nums text-muted-foreground w-7">{Math.round(layer.opacity * 100)}%</span>
+                      <span className="text-[9px] tabular-nums text-muted-foreground w-7">
+                        {Math.round(layer.opacity * 100)}%
+                      </span>
                     </div>
                   </div>
-                  <div className="flex flex-col gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+                  <div
+                    className="flex flex-col gap-0.5 shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <div className="flex gap-0.5">
                       <Button
-                        size="sm" variant="ghost"
+                        size="sm"
+                        variant="ghost"
                         className="h-5 w-5 p-0"
                         disabled={layer.locked}
                         onClick={() => updateLayer(layer.id, { visible: !layer.visible })}
                         title={layer.visible ? "Hide" : "Show"}
                       >
-                        {layer.visible ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3 text-muted-foreground" />}
+                        {layer.visible ? (
+                          <Eye className="h-3 w-3" />
+                        ) : (
+                          <EyeOff className="h-3 w-3 text-muted-foreground" />
+                        )}
                       </Button>
                       <Button
-                        size="sm" variant="ghost"
+                        size="sm"
+                        variant="ghost"
                         className="h-5 w-5 p-0"
                         onClick={() => updateLayer(layer.id, { locked: !layer.locked })}
                         title={layer.locked ? "Unlock" : "Lock"}
                       >
-                        {layer.locked ? <Lock className="h-3 w-3 text-amber-500" /> : <Unlock className="h-3 w-3" />}
+                        {layer.locked ? (
+                          <Lock className="h-3 w-3 text-amber-500" />
+                        ) : (
+                          <Unlock className="h-3 w-3" />
+                        )}
                       </Button>
                     </div>
                     <div className="flex gap-0.5">
-                      <Button size="sm" variant="ghost" className="h-5 w-5 p-0" disabled={i === 0} onClick={() => moveLayer(layer.id, -1)} title="Move up">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-5 w-5 p-0"
+                        disabled={i === 0}
+                        onClick={() => moveLayer(layer.id, -1)}
+                        title="Move up"
+                      >
                         <ChevronUp className="h-3 w-3" />
                       </Button>
-                      <Button size="sm" variant="ghost" className="h-5 w-5 p-0" disabled={i === layers.length - 1} onClick={() => moveLayer(layer.id, 1)} title="Move down">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-5 w-5 p-0"
+                        disabled={i === layers.length - 1}
+                        onClick={() => moveLayer(layer.id, 1)}
+                        title="Move down"
+                      >
                         <ChevronDown className="h-3 w-3" />
                       </Button>
                     </div>
                   </div>
                 </div>
-                <div className="flex gap-1 mt-1.5 pt-1 border-t border-white/5" onClick={(e) => e.stopPropagation()}>
+                <div
+                  className="flex gap-1 mt-1.5 pt-1 border-t border-white/5"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Button
-                    size="sm" variant="outline"
+                    size="sm"
+                    variant="outline"
                     className="h-6 flex-1 text-[10px] bg-background/50"
                     disabled={layer.locked}
                     onClick={() => onEditLayer(layer.id)}
                   >
-                    <Pencil className="h-3 w-3 mr-1" />Edit
+                    <Pencil className="h-3 w-3 mr-1" />
+                    Edit
                   </Button>
                   {layer.linkedGroupId ? (
-                    <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" onClick={() => unlinkLayer(layer.id)} title="Unlink">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-[10px]"
+                      onClick={() => unlinkLayer(layer.id)}
+                      title="Unlink"
+                    >
                       <Unlink className="h-3 w-3" />
                     </Button>
                   ) : (
-                    <Button size="sm" variant="ghost" className="h-6 px-2 text-[10px]" disabled={layer.locked} onClick={() => openLinkDialog(layer.id)} title="Link to another part">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-[10px]"
+                      disabled={layer.locked}
+                      onClick={() => openLinkDialog(layer.id)}
+                      title="Link to another part"
+                    >
                       <Link2 className="h-3 w-3" />
                     </Button>
                   )}
                   <Button
-                    size="sm" variant="ghost"
+                    size="sm"
+                    variant="ghost"
                     className="h-6 px-2 text-[10px] text-destructive hover:bg-destructive/10"
                     disabled={layer.locked}
                     onClick={() => deleteLayer(layer.id)}
@@ -304,11 +392,21 @@ export function LayersPanel3D({
           <div className="space-y-3 py-2">
             <div>
               <Label className="text-xs">Target garment part</Label>
-              <Select value={linkTargetPart} onValueChange={(v) => { setLinkTargetPart(v); setLinkTargetLayer(""); }}>
-                <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Select part…" /></SelectTrigger>
+              <Select
+                value={linkTargetPart}
+                onValueChange={(v) => {
+                  setLinkTargetPart(v);
+                  setLinkTargetLayer("");
+                }}
+              >
+                <SelectTrigger className="h-9 mt-1">
+                  <SelectValue placeholder="Select part…" />
+                </SelectTrigger>
                 <SelectContent>
                   {allParts.map((p) => (
-                    <SelectItem key={p.key} value={p.key}>{p.label}</SelectItem>
+                    <SelectItem key={p.key} value={p.key}>
+                      {p.label}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -317,10 +415,14 @@ export function LayersPanel3D({
               <div>
                 <Label className="text-xs">Target layer</Label>
                 <Select value={linkTargetLayer} onValueChange={setLinkTargetLayer}>
-                  <SelectTrigger className="h-9 mt-1"><SelectValue placeholder="Select layer…" /></SelectTrigger>
+                  <SelectTrigger className="h-9 mt-1">
+                    <SelectValue placeholder="Select layer…" />
+                  </SelectTrigger>
                   <SelectContent>
                     {targetPartLayers.map((l) => (
-                      <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>
+                      <SelectItem key={l.id} value={l.id}>
+                        {l.name}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -328,8 +430,12 @@ export function LayersPanel3D({
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setLinkOpen(false)}>Cancel</Button>
-            <Button onClick={confirmLink} disabled={!linkTargetPart || !linkTargetLayer}>Link</Button>
+            <Button variant="outline" onClick={() => setLinkOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={confirmLink} disabled={!linkTargetPart || !linkTargetLayer}>
+              Link
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

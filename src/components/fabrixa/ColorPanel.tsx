@@ -30,27 +30,42 @@ function hexToRgb(hex: string) {
 }
 function rgbToHex(r: number, g: number, b: number) {
   const h = (n: number) =>
-    Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
+    Math.max(0, Math.min(255, Math.round(n)))
+      .toString(16)
+      .padStart(2, "0");
   return `#${h(r)}${h(g)}${h(b)}`;
 }
 function rgbToHsl(r: number, g: number, b: number) {
-  r /= 255; g /= 255; b /= 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  let h = 0, s = 0; const l = (max + min) / 2;
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b),
+    min = Math.min(r, g, b);
+  let h = 0,
+    s = 0;
+  const l = (max + min) / 2;
   if (max !== min) {
     const d = max - min;
     s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
     switch (max) {
-      case r: h = ((g - b) / d + (g < b ? 6 : 0)); break;
-      case g: h = (b - r) / d + 2; break;
-      case b: h = (r - g) / d + 4; break;
+      case r:
+        h = (g - b) / d + (g < b ? 6 : 0);
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      case b:
+        h = (r - g) / d + 4;
+        break;
     }
     h /= 6;
   }
   return { h: Math.round(h * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 }
 function hslToHex(h: number, s: number, l: number) {
-  h /= 360; s /= 100; l /= 100;
+  h /= 360;
+  s /= 100;
+  l /= 100;
   if (s === 0) {
     const v = Math.round(l * 255);
     return rgbToHex(v, v, v);
@@ -74,10 +89,10 @@ function hslToHex(h: number, s: number, l: number) {
 
 const RECENT_KEY = "fabrixa:recent-colors";
 const CURATED = {
-  Brand:  ["#7e3c8c", "#3b82f6", "#ec4899", "#f59e0b", "#10b981", "#0ea5e9"],
-  Earth:  ["#8b6f5e", "#c4a484", "#6b3a2a", "#4a6741", "#87a878", "#cd7f32"],
+  Brand: ["#7e3c8c", "#3b82f6", "#ec4899", "#f59e0b", "#10b981", "#0ea5e9"],
+  Earth: ["#8b6f5e", "#c4a484", "#6b3a2a", "#4a6741", "#87a878", "#cd7f32"],
   Pastel: ["#fde2e4", "#cdeac0", "#b8e0d2", "#d6e2e9", "#fad2e1", "#e2ece9"],
-  Neon:   ["#39ff14", "#ff6ec7", "#0ff0fc", "#fffa01", "#ff5e00", "#bc13fe"],
+  Neon: ["#39ff14", "#ff6ec7", "#0ff0fc", "#fffa01", "#ff5e00", "#bc13fe"],
 } as const;
 
 function pushRecent(hex: string): string[] {
@@ -88,14 +103,18 @@ function pushRecent(hex: string): string[] {
     const next = [hex, ...arr.filter((c) => c.toLowerCase() !== hex.toLowerCase())].slice(0, 12);
     window.localStorage.setItem(RECENT_KEY, JSON.stringify(next));
     return next;
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 function readRecent(): string[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(RECENT_KEY);
     return raw ? (JSON.parse(raw) as string[]) : [];
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 /* ------------ shared color picker block ------------
@@ -118,23 +137,29 @@ export function ColorPickerBlock({
   const rgb = useMemo(() => hexToRgb(color), [color]);
   const hsl = useMemo(() => rgbToHsl(rgb.r, rgb.g, rgb.b), [rgb]);
 
-  const commit = useCallback((hex: string) => {
-    onColorChange(hex);
-    setRecent(pushRecent(hex));
-  }, [onColorChange]);
+  const commit = useCallback(
+    (hex: string) => {
+      onColorChange(hex);
+      setRecent(pushRecent(hex));
+    },
+    [onColorChange],
+  );
 
   const onPipette = async () => {
-    const W = window as unknown as { EyeDropper?: new () => { open: () => Promise<{ sRGBHex: string }> } };
+    const W = window as unknown as {
+      EyeDropper?: new () => { open: () => Promise<{ sRGBHex: string }> };
+    };
     if (!W.EyeDropper) return;
     try {
       const result = await new W.EyeDropper().open();
       if (result?.sRGBHex) commit(result.sRGBHex);
-    } catch { /* user cancelled */ }
+    } catch {
+      /* user cancelled */
+    }
   };
 
   const hasEyeDropper =
-    typeof window !== "undefined" &&
-    !!(window as unknown as { EyeDropper?: unknown }).EyeDropper;
+    typeof window !== "undefined" && !!(window as unknown as { EyeDropper?: unknown }).EyeDropper;
 
   return (
     <div className="space-y-2.5">
@@ -145,10 +170,7 @@ export function ColorPickerBlock({
       />
 
       <div className="flex items-center gap-1.5">
-        <div
-          className="h-9 w-9 shrink-0 rounded-md border"
-          style={{ background: color }}
-        />
+        <div className="h-9 w-9 shrink-0 rounded-md border" style={{ background: color }} />
         <input
           type="text"
           value={hexInput}
@@ -175,24 +197,50 @@ export function ColorPickerBlock({
 
       {!compact && (
         <div className="grid grid-cols-2 gap-2">
-          <NumInput label="R" value={rgb.r} max={255}
-            onChange={(v) => commit(rgbToHex(v, rgb.g, rgb.b))} />
-          <NumInput label="G" value={rgb.g} max={255}
-            onChange={(v) => commit(rgbToHex(rgb.r, v, rgb.b))} />
-          <NumInput label="B" value={rgb.b} max={255}
-            onChange={(v) => commit(rgbToHex(rgb.r, rgb.g, v))} />
-          <NumInput label="H" value={hsl.h} max={360}
-            onChange={(v) => commit(hslToHex(v, hsl.s, hsl.l))} />
-          <NumInput label="S" value={hsl.s} max={100}
-            onChange={(v) => commit(hslToHex(hsl.h, v, hsl.l))} />
-          <NumInput label="L" value={hsl.l} max={100}
-            onChange={(v) => commit(hslToHex(hsl.h, hsl.s, v))} />
+          <NumInput
+            label="R"
+            value={rgb.r}
+            max={255}
+            onChange={(v) => commit(rgbToHex(v, rgb.g, rgb.b))}
+          />
+          <NumInput
+            label="G"
+            value={rgb.g}
+            max={255}
+            onChange={(v) => commit(rgbToHex(rgb.r, v, rgb.b))}
+          />
+          <NumInput
+            label="B"
+            value={rgb.b}
+            max={255}
+            onChange={(v) => commit(rgbToHex(rgb.r, rgb.g, v))}
+          />
+          <NumInput
+            label="H"
+            value={hsl.h}
+            max={360}
+            onChange={(v) => commit(hslToHex(v, hsl.s, hsl.l))}
+          />
+          <NumInput
+            label="S"
+            value={hsl.s}
+            max={100}
+            onChange={(v) => commit(hslToHex(hsl.h, v, hsl.l))}
+          />
+          <NumInput
+            label="L"
+            value={hsl.l}
+            max={100}
+            onChange={(v) => commit(hslToHex(hsl.h, hsl.s, v))}
+          />
         </div>
       )}
 
       {recent.length > 0 && (
         <div>
-          <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">Recent</div>
+          <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">
+            Recent
+          </div>
           <div className="flex flex-wrap gap-1">
             {recent.map((c) => (
               <button
@@ -211,7 +259,9 @@ export function ColorPickerBlock({
         <Tabs defaultValue="Brand">
           <TabsList className="grid w-full grid-cols-4">
             {(Object.keys(CURATED) as (keyof typeof CURATED)[]).map((k) => (
-              <TabsTrigger key={k} value={k} className="text-[10px]">{k}</TabsTrigger>
+              <TabsTrigger key={k} value={k} className="text-[10px]">
+                {k}
+              </TabsTrigger>
             ))}
           </TabsList>
           {(Object.keys(CURATED) as (keyof typeof CURATED)[]).map((k) => (
@@ -236,9 +286,15 @@ export function ColorPickerBlock({
 }
 
 function NumInput({
-  label, value, max, onChange,
+  label,
+  value,
+  max,
+  onChange,
 }: {
-  label: string; value: number; max: number; onChange: (n: number) => void;
+  label: string;
+  value: number;
+  max: number;
+  onChange: (n: number) => void;
 }) {
   return (
     <label className="flex items-center gap-1 rounded-md border bg-background px-2 py-1 text-xs">
@@ -281,8 +337,12 @@ export function ColorPanel({ color, onColorChange, onApplyGradientTexture }: Pro
   return (
     <Tabs defaultValue="solid" className="w-full">
       <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="solid" className="text-xs">Solid</TabsTrigger>
-        <TabsTrigger value="gradient" className="text-xs">Gradient</TabsTrigger>
+        <TabsTrigger value="solid" className="text-xs">
+          Solid
+        </TabsTrigger>
+        <TabsTrigger value="gradient" className="text-xs">
+          Gradient
+        </TabsTrigger>
       </TabsList>
 
       {/* ---------- SOLID ---------- */}
@@ -297,25 +357,50 @@ export function ColorPanel({ color, onColorChange, onApplyGradientTexture }: Pro
         <div className="space-y-2">
           {stops.map((stop, i) => (
             <div key={i} className="flex items-center gap-2">
-              <input type="color" value={stop.color}
-                onChange={(e) => setStops((arr) => arr.map((x, j) => j === i ? { ...x, color: e.target.value } : x))}
-                className="h-8 w-8 cursor-pointer rounded border" />
-              <Slider value={[stop.offset * 100]} min={0} max={100} step={1}
-                onValueChange={(v) => setStops((arr) => arr.map((x, j) => j === i ? { ...x, offset: v[0] / 100 } : x))}
-                className="flex-1" />
-              <span className="w-9 text-right text-[10px] tabular-nums text-muted-foreground">{Math.round(stop.offset * 100)}%</span>
+              <input
+                type="color"
+                value={stop.color}
+                onChange={(e) =>
+                  setStops((arr) =>
+                    arr.map((x, j) => (j === i ? { ...x, color: e.target.value } : x)),
+                  )
+                }
+                className="h-8 w-8 cursor-pointer rounded border"
+              />
+              <Slider
+                value={[stop.offset * 100]}
+                min={0}
+                max={100}
+                step={1}
+                onValueChange={(v) =>
+                  setStops((arr) => arr.map((x, j) => (j === i ? { ...x, offset: v[0] / 100 } : x)))
+                }
+                className="flex-1"
+              />
+              <span className="w-9 text-right text-[10px] tabular-nums text-muted-foreground">
+                {Math.round(stop.offset * 100)}%
+              </span>
               {stops.length > 2 && (
-                <Button size="icon" variant="ghost" className="h-7 w-7"
-                  onClick={() => setStops((arr) => arr.filter((_, j) => j !== i))}>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  onClick={() => setStops((arr) => arr.filter((_, j) => j !== i))}
+                >
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               )}
             </div>
           ))}
           {stops.length < 6 && (
-            <Button size="sm" variant="outline" className="w-full"
-              onClick={() => setStops((arr) => [...arr, { color: "#ffffff", offset: 0.5 }])}>
-              <Plus className="mr-1.5 h-3.5 w-3.5" />Add stop
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-full"
+              onClick={() => setStops((arr) => [...arr, { color: "#ffffff", offset: 0.5 }])}
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              Add stop
             </Button>
           )}
         </div>
@@ -325,11 +410,18 @@ export function ColorPanel({ color, onColorChange, onApplyGradientTexture }: Pro
             <Label className="text-muted-foreground">Angle</Label>
             <span className="tabular-nums">{Math.round(angle)}°</span>
           </div>
-          <Slider value={[angle]} min={0} max={360} step={1} onValueChange={(v) => setAngle(v[0])} />
+          <Slider
+            value={[angle]}
+            min={0}
+            max={360}
+            step={1}
+            onValueChange={(v) => setAngle(v[0])}
+          />
         </div>
 
         <Button size="sm" className="w-full" onClick={applyGradient}>
-          <Paintbrush className="mr-1.5 h-4 w-4" />Apply gradient to part
+          <Paintbrush className="mr-1.5 h-4 w-4" />
+          Apply gradient to part
         </Button>
         <p className="text-[10px] leading-snug text-muted-foreground">
           Bakes the gradient into a tiling texture so you can still adjust scale & rotation below.

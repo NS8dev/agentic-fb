@@ -2,12 +2,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { OrbitControls, Environment, ContactShadows, Bounds, Html } from "@react-three/drei";
 import * as THREE from "three";
-import {
-  getGarment,
-  type GarmentTypeId,
-  type PartState,
-  partKey,
-} from "@/lib/fabrixa/garments";
+import { getGarment, type GarmentTypeId, type PartState, partKey } from "@/lib/fabrixa/garments";
 import type { ScenePreset } from "@/lib/fabrixa/scenePresets";
 import { loadGarmentModel, disposeScene } from "@/lib/fabrixa/modelLoader";
 import { resolveMeshPartId } from "@/lib/fabrixa/meshUtils";
@@ -104,7 +99,7 @@ function applyPartToMaterial(
   isActive: boolean,
 ) {
   if (!material) return;
-  
+
   // Upgrade to Physical Material if needed for hyper-realism features (sheen, clearcoat)
   // We use standard material properties first then physical ones.
   const mat = material as THREE.MeshPhysicalMaterial;
@@ -124,8 +119,7 @@ function applyPartToMaterial(
 
   // ---- COLOR (clean white when neutral, tints when user picks one) ----
   const userColor = state?.color;
-  const isUserColor =
-    !!userColor && userColor !== "#ffffff" && userColor !== "#dddddd";
+  const isUserColor = !!userColor && userColor !== "#ffffff" && userColor !== "#dddddd";
   if (mat.color && typeof mat.color.set === "function") {
     mat.color.set(isUserColor ? userColor! : "#ffffff");
   }
@@ -137,7 +131,7 @@ function applyPartToMaterial(
     if (internal.appliedTextureSrc) {
       textureCache.release(internal.appliedTextureSrc, mat.map === emptyBaseTex ? null : mat.map);
     }
-    
+
     if (desiredSrc) {
       const t = textureCache.acquire(desiredSrc);
       t.colorSpace = THREE.SRGBColorSpace;
@@ -147,8 +141,8 @@ function applyPartToMaterial(
       t.generateMipmaps = true;
       t.needsUpdate = true;
       mat.map = t;
-      
-      // Hyper-realism: use texture as emissive map to ensure "exact" colors 
+
+      // Hyper-realism: use texture as emissive map to ensure "exact" colors
       mat.emissiveMap = t;
       if (mat.emissive && typeof mat.emissive.set === "function") mat.emissive.set("#ffffff");
       mat.emissiveIntensity = 0.4;
@@ -224,27 +218,27 @@ function applyPartToMaterial(
   // ---- FABRIC PRESET ----
   const presetId = state?.fabricPreset ?? "cotton";
   const preset = APP_DATA_0.fabricPresets[presetId] ?? APP_DATA_0.fabricPresets.cotton;
-  
+
   if (mat.roughness !== undefined) mat.roughness = state?.roughness ?? preset.roughness;
   if (mat.metalness !== undefined) mat.metalness = preset.metalness;
-  
+
   if (mat.sheen !== undefined) {
     mat.sheen = preset.sheen;
     mat.sheenRoughness = preset.sheenRoughness;
     if (!mat.sheenColor) mat.sheenColor = new THREE.Color("#ffffff");
   }
-  
+
   if (mat.clearcoat !== undefined) {
     mat.clearcoat = preset.clearcoat;
     mat.clearcoatRoughness = 0.4;
   }
-  
+
   mat.envMapIntensity = state?.reflectionIntensity ?? preset.envIntensity;
 
   // ---- ACTIVE PART HIGHLIGHT ----
   if (isActive && mat.emissive && typeof mat.emissive.set === "function") {
     if (mat.map) {
-      mat.emissive.set("#b192c4"); 
+      mat.emissive.set("#b192c4");
       mat.emissiveIntensity = 0.65;
     } else {
       mat.emissive.set("#7e3c8c");
@@ -260,7 +254,9 @@ function applyPartToMaterial(
 }
 
 /** Normalize GLB materials to Physical for hyper-realism. */
-function normalizeToPhysical(mat: THREE.Material | undefined | null): THREE.MeshPhysicalMaterial | null {
+function normalizeToPhysical(
+  mat: THREE.Material | undefined | null,
+): THREE.MeshPhysicalMaterial | null {
   if (!mat) return null;
   if (mat instanceof THREE.MeshPhysicalMaterial) return mat;
   try {
@@ -298,7 +294,12 @@ function releaseAllMaterialTextures(root: THREE.Object3D) {
  * ============================================================ */
 
 function GlbGarment({
-  typeId, partStates, activePart, onSelectPart, scene, onUvWireframeGenerated
+  typeId,
+  partStates,
+  activePart,
+  onSelectPart,
+  scene,
+  onUvWireframeGenerated,
 }: {
   typeId: GarmentTypeId;
   partStates: Record<string, PartState>;
@@ -316,7 +317,7 @@ function GlbGarment({
       scene.traverse((obj) => {
         const mesh = obj as THREE.Mesh;
         if (!mesh || !mesh.isMesh) return;
-        
+
         // Upgrade material once to Physical for hyper-realism
         if (!(mesh.material instanceof THREE.MeshPhysicalMaterial)) {
           if (Array.isArray(mesh.material)) {
@@ -333,7 +334,7 @@ function GlbGarment({
         const key = partKey(garment.id, partId);
         const state = partStates[key];
         const isActive = activePart === key;
-        
+
         if (isActive && onUvWireframeGenerated && !wireframeCache.current[key]) {
           const wireframeUrl = generateUvWireframe(mesh);
           wireframeCache.current[key] = wireframeUrl;
@@ -395,7 +396,13 @@ type ProcProps = {
 };
 
 function PartMesh({
-  typeId, partId, partStates, activePart, onSelectPart, children, ...props
+  typeId,
+  partId,
+  partStates,
+  activePart,
+  onSelectPart,
+  children,
+  ...props
 }: ProcProps & {
   partId: string;
   children: React.ReactNode;
@@ -417,7 +424,8 @@ function PartMesh({
     return () => {
       if (!mat) return;
       const s = (mat.userData as Record<string, unknown>)[MATERIAL_USERDATA_KEY] as
-        | AppliedMaterialState | undefined;
+        | AppliedMaterialState
+        | undefined;
       if (s?.appliedTextureSrc) {
         textureCache.release(s.appliedTextureSrc, mat.map ?? null);
         s.appliedTextureSrc = null;
@@ -431,9 +439,17 @@ function PartMesh({
       {...props}
       castShadow
       receiveShadow
-      onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onSelectPart(k); }}
-      onPointerOver={(e) => { e.stopPropagation(); document.body.style.cursor = "pointer"; }}
-      onPointerOut={() => { document.body.style.cursor = "default"; }}
+      onClick={(e: ThreeEvent<MouseEvent>) => {
+        e.stopPropagation();
+        onSelectPart(k);
+      }}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        document.body.style.cursor = "pointer";
+      }}
+      onPointerOut={() => {
+        document.body.style.cursor = "default";
+      }}
     >
       {children}
       <meshPhysicalMaterial ref={matRef} />
@@ -448,14 +464,28 @@ const Mirror = (els: (s: -1 | 1) => React.ReactNode) => [-1, 1].map((s) => els(s
 function Shirt(p: ProcProps) {
   return (
     <group position={[0, -0.8, 0]}>
-      <PartMesh {...p} partId="body" position={[0, 1.3, 0]}><boxGeometry args={[1.0, 1.5, 0.45]} /></PartMesh>
+      <PartMesh {...p} partId="body" position={[0, 1.3, 0]}>
+        <boxGeometry args={[1.0, 1.5, 0.45]} />
+      </PartMesh>
       {Mirror((s) => (
-        <PartMesh key={s} {...p} partId="sleeves" position={[s * 0.65, 1.55, 0]} rotation={[0, 0, s * 0.35]}>
+        <PartMesh
+          key={s}
+          {...p}
+          partId="sleeves"
+          position={[s * 0.65, 1.55, 0]}
+          rotation={[0, 0, s * 0.35]}
+        >
           <cylinderGeometry args={[0.16, 0.18, 1.0, 16]} />
         </PartMesh>
       ))}
       {Mirror((s) => (
-        <PartMesh key={`c${s}`} {...p} partId="cuffs" position={[s * 1.1, 1.05, 0]} rotation={[0, 0, s * 0.35]}>
+        <PartMesh
+          key={`c${s}`}
+          {...p}
+          partId="cuffs"
+          position={[s * 1.1, 1.05, 0]}
+          rotation={[0, 0, s * 0.35]}
+        >
           <cylinderGeometry args={[0.19, 0.19, 0.1, 16]} />
         </PartMesh>
       ))}
@@ -474,13 +504,23 @@ function Shirt(p: ProcProps) {
 function TShirt(p: ProcProps) {
   return (
     <group position={[0, -0.8, 0]}>
-      <PartMesh {...p} partId="body" position={[0, 1.4, 0]}><boxGeometry args={[1.0, 1.2, 0.45]} /></PartMesh>
+      <PartMesh {...p} partId="body" position={[0, 1.4, 0]}>
+        <boxGeometry args={[1.0, 1.2, 0.45]} />
+      </PartMesh>
       {Mirror((s) => (
-        <PartMesh key={s} {...p} partId="sleeves" position={[s * 0.65, 1.75, 0]} rotation={[0, 0, s * 0.4]}>
+        <PartMesh
+          key={s}
+          {...p}
+          partId="sleeves"
+          position={[s * 0.65, 1.75, 0]}
+          rotation={[0, 0, s * 0.4]}
+        >
           <cylinderGeometry args={[0.18, 0.18, 0.4, 16]} />
         </PartMesh>
       ))}
-      <PartMesh {...p} partId="collar" position={[0, 2.0, 0]}><torusGeometry args={[0.18, 0.04, 12, 24]} /></PartMesh>
+      <PartMesh {...p} partId="collar" position={[0, 2.0, 0]}>
+        <torusGeometry args={[0.18, 0.04, 12, 24]} />
+      </PartMesh>
     </group>
   );
 }
@@ -488,7 +528,9 @@ function TShirt(p: ProcProps) {
 function Pant(p: ProcProps) {
   return (
     <group position={[0, -1.2, 0]}>
-      <PartMesh {...p} partId="waistband" position={[0, 1.45, 0]}><cylinderGeometry args={[0.45, 0.45, 0.12, 24]} /></PartMesh>
+      <PartMesh {...p} partId="waistband" position={[0, 1.45, 0]}>
+        <cylinderGeometry args={[0.45, 0.45, 0.12, 24]} />
+      </PartMesh>
       {Mirror((s) => (
         <PartMesh key={s} {...p} partId="legs" position={[s * 0.2, 0.5, 0]}>
           <cylinderGeometry args={[0.18, 0.22, 1.7, 16]} />
@@ -506,13 +548,23 @@ function Pant(p: ProcProps) {
 function Top(p: ProcProps) {
   return (
     <group position={[0, -0.6, 0]}>
-      <PartMesh {...p} partId="body" position={[0, 1.4, 0]}><cylinderGeometry args={[0.42, 0.48, 1.0, 24]} /></PartMesh>
+      <PartMesh {...p} partId="body" position={[0, 1.4, 0]}>
+        <cylinderGeometry args={[0.42, 0.48, 1.0, 24]} />
+      </PartMesh>
       {Mirror((s) => (
-        <PartMesh key={s} {...p} partId="sleeves" position={[s * 0.55, 1.65, 0]} rotation={[0, 0, s * 0.4]}>
+        <PartMesh
+          key={s}
+          {...p}
+          partId="sleeves"
+          position={[s * 0.55, 1.65, 0]}
+          rotation={[0, 0, s * 0.4]}
+        >
           <cylinderGeometry args={[0.14, 0.16, 0.55, 16]} />
         </PartMesh>
       ))}
-      <PartMesh {...p} partId="neckline" position={[0, 1.95, 0]}><torusGeometry args={[0.18, 0.035, 12, 24]} /></PartMesh>
+      <PartMesh {...p} partId="neckline" position={[0, 1.95, 0]}>
+        <torusGeometry args={[0.18, 0.035, 12, 24]} />
+      </PartMesh>
     </group>
   );
 }
@@ -520,7 +572,9 @@ function Top(p: ProcProps) {
 function TrackPants(p: ProcProps) {
   return (
     <group position={[0, -1.2, 0]}>
-      <PartMesh {...p} partId="waistband" position={[0, 1.45, 0]}><cylinderGeometry args={[0.46, 0.46, 0.14, 24]} /></PartMesh>
+      <PartMesh {...p} partId="waistband" position={[0, 1.45, 0]}>
+        <cylinderGeometry args={[0.46, 0.46, 0.14, 24]} />
+      </PartMesh>
       {Mirror((s) => (
         <PartMesh key={s} {...p} partId="legs" position={[s * 0.22, 0.5, 0]}>
           <cylinderGeometry args={[0.2, 0.22, 1.75, 16]} />
@@ -538,21 +592,37 @@ function TrackPants(p: ProcProps) {
 function Hoodie(p: ProcProps) {
   return (
     <group position={[0, -0.8, 0]}>
-      <PartMesh {...p} partId="body" position={[0, 1.3, 0]}><boxGeometry args={[1.1, 1.5, 0.5]} /></PartMesh>
+      <PartMesh {...p} partId="body" position={[0, 1.3, 0]}>
+        <boxGeometry args={[1.1, 1.5, 0.5]} />
+      </PartMesh>
       {Mirror((s) => (
-        <PartMesh key={s} {...p} partId="sleeves" position={[s * 0.7, 1.55, 0]} rotation={[0, 0, s * 0.35]}>
+        <PartMesh
+          key={s}
+          {...p}
+          partId="sleeves"
+          position={[s * 0.7, 1.55, 0]}
+          rotation={[0, 0, s * 0.35]}
+        >
           <cylinderGeometry args={[0.18, 0.2, 1.0, 16]} />
         </PartMesh>
       ))}
       {Mirror((s) => (
-        <PartMesh key={`c${s}`} {...p} partId="cuffs" position={[s * 1.15, 1.05, 0]} rotation={[0, 0, s * 0.35]}>
+        <PartMesh
+          key={`c${s}`}
+          {...p}
+          partId="cuffs"
+          position={[s * 1.15, 1.05, 0]}
+          rotation={[0, 0, s * 0.35]}
+        >
           <cylinderGeometry args={[0.21, 0.21, 0.12, 16]} />
         </PartMesh>
       ))}
       <PartMesh {...p} partId="hood" position={[0, 2.15, -0.1]}>
         <sphereGeometry args={[0.42, 16, 16, 0, Math.PI * 2, 0, Math.PI / 1.6]} />
       </PartMesh>
-      <PartMesh {...p} partId="pocket" position={[0, 0.95, 0.27]}><boxGeometry args={[0.7, 0.35, 0.05]} /></PartMesh>
+      <PartMesh {...p} partId="pocket" position={[0, 0.95, 0.27]}>
+        <boxGeometry args={[0.7, 0.35, 0.05]} />
+      </PartMesh>
     </group>
   );
 }
@@ -560,8 +630,12 @@ function Hoodie(p: ProcProps) {
 function Skirt(p: ProcProps) {
   return (
     <group position={[0, -1, 0]}>
-      <PartMesh {...p} partId="waistband" position={[0, 1.45, 0]}><cylinderGeometry args={[0.52, 0.52, 0.12, 24]} /></PartMesh>
-      <PartMesh {...p} partId="skirt" position={[0, 0.8, 0]}><coneGeometry args={[0.95, 1.3, 24, 1, true]} /></PartMesh>
+      <PartMesh {...p} partId="waistband" position={[0, 1.45, 0]}>
+        <cylinderGeometry args={[0.52, 0.52, 0.12, 24]} />
+      </PartMesh>
+      <PartMesh {...p} partId="skirt" position={[0, 0.8, 0]}>
+        <coneGeometry args={[0.95, 1.3, 24, 1, true]} />
+      </PartMesh>
     </group>
   );
 }
@@ -569,9 +643,15 @@ function Skirt(p: ProcProps) {
 function Lehenga(p: ProcProps) {
   return (
     <group position={[0, -1.4, 0]}>
-      <PartMesh {...p} partId="blouse" position={[0, 2.0, 0]}><cylinderGeometry args={[0.42, 0.5, 0.55, 24]} /></PartMesh>
-      <PartMesh {...p} partId="skirt" position={[0, 0.6, 0]}><coneGeometry args={[1.4, 2.0, 32, 1, true]} /></PartMesh>
-      <PartMesh {...p} partId="border" position={[0, -0.35, 0]}><torusGeometry args={[1.4, 0.05, 12, 48]} /></PartMesh>
+      <PartMesh {...p} partId="blouse" position={[0, 2.0, 0]}>
+        <cylinderGeometry args={[0.42, 0.5, 0.55, 24]} />
+      </PartMesh>
+      <PartMesh {...p} partId="skirt" position={[0, 0.6, 0]}>
+        <coneGeometry args={[1.4, 2.0, 32, 1, true]} />
+      </PartMesh>
+      <PartMesh {...p} partId="border" position={[0, -0.35, 0]}>
+        <torusGeometry args={[1.4, 0.05, 12, 48]} />
+      </PartMesh>
       <PartMesh {...p} partId="dupatta" position={[0.35, 1.7, 0.35]} rotation={[0.2, 0.2, -0.2]}>
         <planeGeometry args={[1.7, 2.4, 16, 16]} />
       </PartMesh>
@@ -582,14 +662,26 @@ function Lehenga(p: ProcProps) {
 function Gown(p: ProcProps) {
   return (
     <group position={[0, -1.2, 0]}>
-      <PartMesh {...p} partId="bodice" position={[0, 1.9, 0]}><cylinderGeometry args={[0.4, 0.5, 0.7, 24]} /></PartMesh>
-      <PartMesh {...p} partId="skirt" position={[0, 0.6, 0]}><coneGeometry args={[1.2, 1.8, 32, 1, true]} /></PartMesh>
+      <PartMesh {...p} partId="bodice" position={[0, 1.9, 0]}>
+        <cylinderGeometry args={[0.4, 0.5, 0.7, 24]} />
+      </PartMesh>
+      <PartMesh {...p} partId="skirt" position={[0, 0.6, 0]}>
+        <coneGeometry args={[1.2, 1.8, 32, 1, true]} />
+      </PartMesh>
       {Mirror((s) => (
-        <PartMesh key={s} {...p} partId="sleeves" position={[s * 0.55, 1.85, 0]} rotation={[0, 0, s * 0.4]}>
+        <PartMesh
+          key={s}
+          {...p}
+          partId="sleeves"
+          position={[s * 0.55, 1.85, 0]}
+          rotation={[0, 0, s * 0.4]}
+        >
           <cylinderGeometry args={[0.12, 0.16, 1.0, 16]} />
         </PartMesh>
       ))}
-      <PartMesh {...p} partId="trim" position={[0, -0.3, 0]}><torusGeometry args={[1.2, 0.04, 8, 48]} /></PartMesh>
+      <PartMesh {...p} partId="trim" position={[0, -0.3, 0]}>
+        <torusGeometry args={[1.2, 0.04, 8, 48]} />
+      </PartMesh>
     </group>
   );
 }
@@ -597,14 +689,26 @@ function Gown(p: ProcProps) {
 function Kurti(p: ProcProps) {
   return (
     <group position={[0, -1, 0]}>
-      <PartMesh {...p} partId="body" position={[0, 1.4, 0]}><cylinderGeometry args={[0.55, 0.7, 1.6, 32]} /></PartMesh>
-      <PartMesh {...p} partId="neckline" position={[0, 2.1, 0]}><torusGeometry args={[0.18, 0.04, 12, 24]} /></PartMesh>
+      <PartMesh {...p} partId="body" position={[0, 1.4, 0]}>
+        <cylinderGeometry args={[0.55, 0.7, 1.6, 32]} />
+      </PartMesh>
+      <PartMesh {...p} partId="neckline" position={[0, 2.1, 0]}>
+        <torusGeometry args={[0.18, 0.04, 12, 24]} />
+      </PartMesh>
       {Mirror((s) => (
-        <PartMesh key={s} {...p} partId="sleeves" position={[s * 0.65, 1.85, 0]} rotation={[0, 0, s * 0.3]}>
+        <PartMesh
+          key={s}
+          {...p}
+          partId="sleeves"
+          position={[s * 0.65, 1.85, 0]}
+          rotation={[0, 0, s * 0.3]}
+        >
           <cylinderGeometry args={[0.16, 0.18, 0.7, 16]} />
         </PartMesh>
       ))}
-      <PartMesh {...p} partId="hem" position={[0, 0.55, 0]}><torusGeometry args={[0.7, 0.04, 8, 48]} /></PartMesh>
+      <PartMesh {...p} partId="hem" position={[0, 0.55, 0]}>
+        <torusGeometry args={[0.7, 0.04, 8, 48]} />
+      </PartMesh>
     </group>
   );
 }
@@ -612,14 +716,26 @@ function Kurti(p: ProcProps) {
 function Kurta(p: ProcProps) {
   return (
     <group position={[0, -1.1, 0]}>
-      <PartMesh {...p} partId="body" position={[0, 1.4, 0]}><cylinderGeometry args={[0.55, 0.62, 1.9, 24]} /></PartMesh>
+      <PartMesh {...p} partId="body" position={[0, 1.4, 0]}>
+        <cylinderGeometry args={[0.55, 0.62, 1.9, 24]} />
+      </PartMesh>
       {Mirror((s) => (
-        <PartMesh key={s} {...p} partId="sleeves" position={[s * 0.65, 1.85, 0]} rotation={[0, 0, s * 0.3]}>
+        <PartMesh
+          key={s}
+          {...p}
+          partId="sleeves"
+          position={[s * 0.65, 1.85, 0]}
+          rotation={[0, 0, s * 0.3]}
+        >
           <cylinderGeometry args={[0.17, 0.19, 1.0, 16]} />
         </PartMesh>
       ))}
-      <PartMesh {...p} partId="collar" position={[0, 2.25, 0]}><cylinderGeometry args={[0.18, 0.18, 0.12, 16]} /></PartMesh>
-      <PartMesh {...p} partId="placket" position={[0, 1.6, 0.56]}><boxGeometry args={[0.08, 0.9, 0.02]} /></PartMesh>
+      <PartMesh {...p} partId="collar" position={[0, 2.25, 0]}>
+        <cylinderGeometry args={[0.18, 0.18, 0.12, 16]} />
+      </PartMesh>
+      <PartMesh {...p} partId="placket" position={[0, 1.6, 0.56]}>
+        <boxGeometry args={[0.08, 0.9, 0.02]} />
+      </PartMesh>
       {[2.05, 1.85, 1.65, 1.45].map((y, i) => (
         <PartMesh key={i} {...p} partId="buttons" position={[0, y, 0.58]}>
           <sphereGeometry args={[0.025, 12, 12]} />
@@ -632,7 +748,9 @@ function Kurta(p: ProcProps) {
 function Salwar(p: ProcProps) {
   return (
     <group position={[0, -1.2, 0]}>
-      <PartMesh {...p} partId="waistband" position={[0, 1.45, 0]}><cylinderGeometry args={[0.5, 0.5, 0.12, 24]} /></PartMesh>
+      <PartMesh {...p} partId="waistband" position={[0, 1.45, 0]}>
+        <cylinderGeometry args={[0.5, 0.5, 0.12, 24]} />
+      </PartMesh>
       {Mirror((s) => (
         <PartMesh key={s} {...p} partId="legs" position={[s * 0.22, 0.55, 0]}>
           <cylinderGeometry args={[0.36, 0.18, 1.7, 16]} />
@@ -650,9 +768,17 @@ function Salwar(p: ProcProps) {
 function Coat(p: ProcProps) {
   return (
     <group position={[0, -1, 0]}>
-      <PartMesh {...p} partId="body" position={[0, 1.2, 0]}><boxGeometry args={[1.1, 2.0, 0.55]} /></PartMesh>
+      <PartMesh {...p} partId="body" position={[0, 1.2, 0]}>
+        <boxGeometry args={[1.1, 2.0, 0.55]} />
+      </PartMesh>
       {Mirror((s) => (
-        <PartMesh key={s} {...p} partId="sleeves" position={[s * 0.7, 1.45, 0]} rotation={[0, 0, s * 0.32]}>
+        <PartMesh
+          key={s}
+          {...p}
+          partId="sleeves"
+          position={[s * 0.7, 1.45, 0]}
+          rotation={[0, 0, s * 0.32]}
+        >
           <cylinderGeometry args={[0.18, 0.2, 1.3, 16]} />
         </PartMesh>
       ))}
@@ -660,7 +786,13 @@ function Coat(p: ProcProps) {
         <torusGeometry args={[0.25, 0.05, 12, 24, Math.PI]} />
       </PartMesh>
       {Mirror((s) => (
-        <PartMesh key={`l${s}`} {...p} partId="lapel" position={[s * 0.25, 1.6, 0.28]} rotation={[0, 0, -s * 0.2]}>
+        <PartMesh
+          key={`l${s}`}
+          {...p}
+          partId="lapel"
+          position={[s * 0.25, 1.6, 0.28]}
+          rotation={[0, 0, -s * 0.2]}
+        >
           <boxGeometry args={[0.18, 0.8, 0.04]} />
         </PartMesh>
       ))}
@@ -676,7 +808,9 @@ function Coat(p: ProcProps) {
 function Plazo(p: ProcProps) {
   return (
     <group position={[0, -1.2, 0]}>
-      <PartMesh {...p} partId="waistband" position={[0, 1.45, 0]}><cylinderGeometry args={[0.48, 0.48, 0.12, 24]} /></PartMesh>
+      <PartMesh {...p} partId="waistband" position={[0, 1.45, 0]}>
+        <cylinderGeometry args={[0.48, 0.48, 0.12, 24]} />
+      </PartMesh>
       {Mirror((s) => (
         <PartMesh key={s} {...p} partId="legs" position={[s * 0.25, 0.5, 0]}>
           <cylinderGeometry args={[0.42, 0.22, 1.75, 24]} />
@@ -689,13 +823,23 @@ function Plazo(p: ProcProps) {
 function Blouse(p: ProcProps) {
   return (
     <group position={[0, -0.4, 0]}>
-      <PartMesh {...p} partId="body" position={[0, 1.6, 0]}><cylinderGeometry args={[0.42, 0.48, 0.7, 24]} /></PartMesh>
+      <PartMesh {...p} partId="body" position={[0, 1.6, 0]}>
+        <cylinderGeometry args={[0.42, 0.48, 0.7, 24]} />
+      </PartMesh>
       {Mirror((s) => (
-        <PartMesh key={s} {...p} partId="sleeves" position={[s * 0.55, 1.75, 0]} rotation={[0, 0, s * 0.45]}>
+        <PartMesh
+          key={s}
+          {...p}
+          partId="sleeves"
+          position={[s * 0.55, 1.75, 0]}
+          rotation={[0, 0, s * 0.45]}
+        >
           <cylinderGeometry args={[0.12, 0.16, 0.4, 16]} />
         </PartMesh>
       ))}
-      <PartMesh {...p} partId="neckline" position={[0, 2.0, 0]}><torusGeometry args={[0.17, 0.035, 12, 24]} /></PartMesh>
+      <PartMesh {...p} partId="neckline" position={[0, 2.0, 0]}>
+        <torusGeometry args={[0.17, 0.035, 12, 24]} />
+      </PartMesh>
     </group>
   );
 }
@@ -703,9 +847,15 @@ function Blouse(p: ProcProps) {
 function Saree(p: ProcProps) {
   return (
     <group position={[0, -1.2, 0]}>
-      <PartMesh {...p} partId="blouse" position={[0, 1.9, 0]}><cylinderGeometry args={[0.45, 0.5, 0.55, 24]} /></PartMesh>
-      <PartMesh {...p} partId="pleats" position={[0, 0.8, 0]}><cylinderGeometry args={[0.55, 0.9, 1.7, 32]} /></PartMesh>
-      <PartMesh {...p} partId="border" position={[0, -0.05, 0]}><torusGeometry args={[0.9, 0.06, 12, 32]} /></PartMesh>
+      <PartMesh {...p} partId="blouse" position={[0, 1.9, 0]}>
+        <cylinderGeometry args={[0.45, 0.5, 0.55, 24]} />
+      </PartMesh>
+      <PartMesh {...p} partId="pleats" position={[0, 0.8, 0]}>
+        <cylinderGeometry args={[0.55, 0.9, 1.7, 32]} />
+      </PartMesh>
+      <PartMesh {...p} partId="border" position={[0, -0.05, 0]}>
+        <torusGeometry args={[0.9, 0.06, 12, 32]} />
+      </PartMesh>
       <PartMesh {...p} partId="pallu" position={[0.3, 1.6, 0.35]} rotation={[0.2, 0.2, -0.2]}>
         <planeGeometry args={[1.6, 2.2, 16, 16]} />
       </PartMesh>
@@ -744,10 +894,19 @@ function Mannequin({ visible, gender }: { visible: boolean; gender: "men" | "wom
   const skin = "#e8c39a";
   return (
     <group>
-      <mesh position={[0, 2.55, 0]}><sphereGeometry args={[0.27, 24, 24]} /><meshStandardMaterial color={skin} roughness={0.8} /></mesh>
-      <mesh position={[0, 2.2, 0]}><cylinderGeometry args={[0.09, 0.11, 0.18, 12]} /><meshStandardMaterial color={skin} /></mesh>
+      <mesh position={[0, 2.55, 0]}>
+        <sphereGeometry args={[0.27, 24, 24]} />
+        <meshStandardMaterial color={skin} roughness={0.8} />
+      </mesh>
+      <mesh position={[0, 2.2, 0]}>
+        <cylinderGeometry args={[0.09, 0.11, 0.18, 12]} />
+        <meshStandardMaterial color={skin} />
+      </mesh>
       {gender === "women" && (
-        <mesh position={[0, 1.55, 0.15]}><sphereGeometry args={[0.18, 16, 16]} /><meshStandardMaterial color={skin} /></mesh>
+        <mesh position={[0, 1.55, 0.15]}>
+          <sphereGeometry args={[0.18, 16, 16]} />
+          <meshStandardMaterial color={skin} />
+        </mesh>
       )}
     </group>
   );
@@ -756,8 +915,16 @@ function Mannequin({ visible, gender }: { visible: boolean; gender: "men" | "wom
 /* ============================================================
  * Auto-spin
  * ============================================================ */
-function AutoSpin({ enabled, groupRef }: { enabled: boolean; groupRef: React.RefObject<THREE.Group | null> }) {
-  useFrame((_, dt) => { if (enabled && groupRef.current) groupRef.current.rotation.y += dt * 0.35; });
+function AutoSpin({
+  enabled,
+  groupRef,
+}: {
+  enabled: boolean;
+  groupRef: React.RefObject<THREE.Group | null>;
+}) {
+  useFrame((_, dt) => {
+    if (enabled && groupRef.current) groupRef.current.rotation.y += dt * 0.35;
+  });
   return null;
 }
 
@@ -796,13 +963,17 @@ interface LoadState {
 }
 
 function GarmentBody({
-  typeId, partStates, activePart, onSelectPart, onUvWireframeGenerated
+  typeId,
+  partStates,
+  activePart,
+  onSelectPart,
+  onUvWireframeGenerated,
 }: ProcProps & { onUvWireframeGenerated?: (partKey: string, dataUrl: string) => void }) {
   const [load, setLoad] = useState<LoadState>({ status: "loading", scene: null });
 
   useEffect(() => {
     let cancelled = false;
-    let activeScene: THREE.Group | null = null;
+    const activeScene: THREE.Group | null = null;
     const garment = getGarment(typeId);
     setLoad({ status: "loading", scene: null });
 
@@ -825,7 +996,7 @@ function GarmentBody({
 
     return () => {
       cancelled = true;
-      // We no longer dispose activeScene here - GlbGarment (the child) 
+      // We no longer dispose activeScene here - GlbGarment (the child)
       // now "owns" the cloned instance and disposes it on unmount.
       // This prevents race conditions during fast transitions.
     };
@@ -875,6 +1046,7 @@ function GarmentBody({
 
 function CaptureHandler() {
   const { gl, scene, camera, size } = useThree();
+  const controls = useThree((s) => (s as any).controls);
 
   useEffect(() => {
     const handleCapture = async (e: Event) => {
@@ -884,7 +1056,7 @@ function CaptureHandler() {
       };
       if (!detail) return;
 
-      const originalTarget = new THREE.Vector3(0, 0.6, 0);
+      const originalTarget = controls?.target?.clone() ?? new THREE.Vector3(0, 0.6, 0);
       const originalPos = camera.position.clone();
 
       // Position camera for front or back
@@ -901,11 +1073,11 @@ function CaptureHandler() {
       const dpr = 3; // Force 3x for "realistic high quality"
       const w = size.width * dpr;
       const h = size.height * dpr;
-      
+
       const originalDPR = gl.getPixelRatio();
       gl.setPixelRatio(dpr);
       gl.setSize(size.width, size.height, false);
-      
+
       // Ensure everything is updated
       try {
         if (gl && scene && camera) {
@@ -927,7 +1099,7 @@ function CaptureHandler() {
 
     window.addEventListener("fabrixa:capture-3d", handleCapture);
     return () => window.removeEventListener("fabrixa:capture-3d", handleCapture);
-  }, [gl, scene, camera, size]);
+  }, [gl, scene, camera, size, controls]);
 
   return null;
 }
@@ -937,15 +1109,29 @@ function CaptureHandler() {
  * ============================================================ */
 
 export function GarmentPreview({
-  typeId, partStates, activePart, scene, autoRotate, showMannequin, onSelectPart,
-  lassoActive = false, lassoMode = "freehand", onLassoMask, onUvWireframeGenerated,
+  typeId,
+  partStates,
+  activePart,
+  scene,
+  autoRotate,
+  showMannequin,
+  onSelectPart,
+  lassoActive = false,
+  lassoMode = "freehand",
+  onLassoMask,
+  onUvWireframeGenerated,
 }: Props) {
   const orbitLocked = lassoActive && lassoMode !== "polygon";
   const groupRef = useRef<THREE.Group>(null);
   const garment = useMemo(() => getGarment(typeId), [typeId]);
   const isTransparent = scene.id === "transparent";
 
-  useEffect(() => () => { document.body.style.cursor = "default"; }, []);
+  useEffect(
+    () => () => {
+      document.body.style.cursor = "default";
+    },
+    [],
+  );
 
   // PERF: only render continuously when something needs to animate (spin /
   // lasso). Otherwise demand-render so idle GPU drops to ~0%.
@@ -964,16 +1150,30 @@ export function GarmentPreview({
         toneMappingExposure: 1.15,
         outputColorSpace: THREE.SRGBColorSpace,
       }}
-      onCreated={({ gl }) => { gl.setClearColor(0x000000, 0); }}
-      style={{ background: isTransparent ? "transparent" : scene.background, width: "100%", height: "100%" }}
+      onCreated={({ gl }) => {
+        gl.setClearColor(0x000000, 0);
+      }}
+      style={{
+        background: isTransparent ? "transparent" : scene.background,
+        width: "100%",
+        height: "100%",
+      }}
     >
       <CaptureHandler />
       {/* Hyper-realistic Studio Rig: 3-point + Rim + Fill */}
       <ambientLight intensity={scene.ambient * 0.8} />
       <hemisphereLight args={["#ffffff", "#cfd0e0", 0.45]} />
       <directionalLight position={[4, 8, 5]} intensity={scene.keyIntensity * 1.2} />
-      <directionalLight position={[-5, 4, -3]} intensity={scene.keyIntensity * 0.6} color="#dfe4ff" />
-      <directionalLight position={[0, 5, -6]} intensity={scene.keyIntensity * 0.5} color="#ffe9d0" />
+      <directionalLight
+        position={[-5, 4, -3]}
+        intensity={scene.keyIntensity * 0.6}
+        color="#dfe4ff"
+      />
+      <directionalLight
+        position={[0, 5, -6]}
+        intensity={scene.keyIntensity * 0.5}
+        color="#ffe9d0"
+      />
       <directionalLight position={[0, -4, 3]} intensity={0.3} color="#ffffff" />
       <CanvasInvalidator typeId={typeId} />
       <Suspense fallback={null}>
@@ -1014,9 +1214,7 @@ export function GarmentPreview({
         target={[0, 0.6, 0]}
       />
       <AutoSpin enabled={autoRotate && !orbitLocked} groupRef={groupRef} />
-      {lassoActive && onLassoMask && (
-        <LassoComputer activePart={activePart} onMask={onLassoMask} />
-      )}
+      {lassoActive && onLassoMask && <LassoComputer activePart={activePart} onMask={onLassoMask} />}
     </Canvas>
   );
 }

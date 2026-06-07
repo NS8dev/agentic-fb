@@ -86,7 +86,8 @@ export function useRunGated() {
 
       useSubscriptionStore.setState({
         coinBalance: spend.patch.coinBalance,
-        dailyAiRequestsRemaining: spend.patch.dailyAiRequestsRemaining ?? ent.dailyAiRequestsRemaining,
+        dailyAiRequestsRemaining:
+          spend.patch.dailyAiRequestsRemaining ?? ent.dailyAiRequestsRemaining,
         dailyShowroomDownloadsCount:
           spend.patch.dailyShowroomDownloadsCount ?? ent.dailyShowroomDownloadsCount,
       });

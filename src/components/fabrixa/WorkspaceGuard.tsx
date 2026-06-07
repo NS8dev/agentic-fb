@@ -7,8 +7,7 @@ interface Props {
 }
 
 export function WorkspaceGuard({ children }: Props) {
-  const { canAccessWorkspace, isAuthenticated, hasActivePlan, entLoading } =
-    useWorkspaceAccess();
+  const { canAccessWorkspace, isAuthenticated, hasActivePlan, entLoading } = useWorkspaceAccess();
 
   if (!canAccessWorkspace) {
     return (

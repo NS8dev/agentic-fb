@@ -13,7 +13,10 @@ type AiCfg = {
 const cfg = (rootConfig as { ai: AiCfg }).ai;
 
 function parsePaletteJson(text: string): { colors: string[]; names?: string[] } | null {
-  const cleaned = text.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
+  const cleaned = text
+    .replace(/```json\s*/gi, "")
+    .replace(/```/g, "")
+    .trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   if (start < 0 || end <= start) return null;
@@ -61,7 +64,8 @@ export const Route = createFileRoute("/api/ai/smart-palette")({
           return Response.json({ ...palette, provider: "gemini" });
         } catch (e) {
           const msg = e instanceof Error ? e.message : "Smart palette failed";
-          const status = msg.includes("GEMINI_API_KEY") || msg.includes("GOOGLE_AI_API_KEY") ? 503 : 500;
+          const status =
+            msg.includes("GEMINI_API_KEY") || msg.includes("GOOGLE_AI_API_KEY") ? 503 : 500;
           return Response.json({ error: msg }, { status });
         }
       },

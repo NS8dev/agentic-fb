@@ -63,7 +63,7 @@ function ensurePatch(material: THREE.Material) {
         "#include <common>",
         `#include <common>
 varying vec3 vFx_worldPos;
-varying vec3 vFx_worldNormal;`
+varying vec3 vFx_worldNormal;`,
       )
       .replace(
         "#include <worldpos_vertex>",
@@ -73,7 +73,7 @@ varying vec3 vFx_worldNormal;`
 #else
   vFx_worldPos = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;
 #endif
-vFx_worldNormal = normalize( normalMatrix * objectNormal );`
+vFx_worldNormal = normalize( normalMatrix * objectNormal );`,
       );
 
     shader.fragmentShader = shader.fragmentShader
@@ -120,7 +120,7 @@ vec4 fx_triplanar( sampler2D tex, vec3 worldPos, vec3 worldNormal, float scale )
   vec3 w = pow( abs(n), vec3(uTriplanarBlend * 1.5) );
   w /= max( w.x + w.y + w.z, 0.0001 );
   return cX * w.x + cY * w.y + cZ * w.z;
-}`
+}`,
       )
       .replace(
         "#include <map_fragment>",
@@ -144,7 +144,7 @@ if (uHasLayerMap) {
     vec4 layerTexel = texture2D(uLayerMap, layerUv);
     diffuseColor.rgb = mix(diffuseColor.rgb, layerTexel.rgb, layerTexel.a);
   #endif
-}`
+}`,
       )
       .replace(
         "#include <emissivemap_fragment>",
@@ -170,7 +170,7 @@ if (uHasLayerMap) {
       totalEmissiveRadiance = mix(totalEmissiveRadiance, emissive * layerTexel.rgb, layerTexel.a);
     #endif
   #endif
-}`
+}`,
       );
   };
 

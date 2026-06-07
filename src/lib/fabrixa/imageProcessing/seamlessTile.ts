@@ -1,23 +1,37 @@
 // Seamless tile repair — offset-merge + multi-band edge blending.
-import { loadImage, imageToCanvas, canvasToDataUrl, getImageData, putImageData } from "./canvasUtils";
+import {
+  loadImage,
+  imageToCanvas,
+  canvasToDataUrl,
+  getImageData,
+  putImageData,
+} from "./canvasUtils";
 
 function edgeDeltaScore(data: ImageData): number {
   const { width: w, height: h, data: d } = data;
   let sum = 0;
   let n = 0;
   for (let x = 0; x < w; x++) {
-    for (const [y1, y2] of [[0, h - 1], [h - 1, 0]] as const) {
+    for (const [y1, y2] of [
+      [0, h - 1],
+      [h - 1, 0],
+    ] as const) {
       const i1 = (y1 * w + x) * 4;
       const i2 = (y2 * w + x) * 4;
-      sum += Math.abs(d[i1] - d[i2]) + Math.abs(d[i1 + 1] - d[i2 + 1]) + Math.abs(d[i1 + 2] - d[i2 + 2]);
+      sum +=
+        Math.abs(d[i1] - d[i2]) + Math.abs(d[i1 + 1] - d[i2 + 1]) + Math.abs(d[i1 + 2] - d[i2 + 2]);
       n += 3;
     }
   }
   for (let y = 0; y < h; y++) {
-    for (const [x1, x2] of [[0, w - 1], [w - 1, 0]] as const) {
+    for (const [x1, x2] of [
+      [0, w - 1],
+      [w - 1, 0],
+    ] as const) {
       const i1 = (y * w + x1) * 4;
       const i2 = (y * w + x2) * 4;
-      sum += Math.abs(d[i1] - d[i2]) + Math.abs(d[i1 + 1] - d[i2 + 1]) + Math.abs(d[i1 + 2] - d[i2 + 2]);
+      sum +=
+        Math.abs(d[i1] - d[i2]) + Math.abs(d[i1 + 1] - d[i2 + 1]) + Math.abs(d[i1 + 2] - d[i2 + 2]);
       n += 3;
     }
   }

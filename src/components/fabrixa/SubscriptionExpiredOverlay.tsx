@@ -42,16 +42,10 @@ export function SubscriptionExpiredOverlay() {
               ? "Your monthly plan has ended. Renew to keep designing — your saved work is safe."
               : "Pick a plan to unlock the editor, 3D preview, exports, and the showroom."}
           </p>
-          <Button
-            className="mt-6 w-full"
-            size="lg"
-            onClick={() => setPricingOpen(true)}
-          >
+          <Button className="mt-6 w-full" size="lg" onClick={() => setPricingOpen(true)}>
             {tier ? "Renew subscription" : "View plans"}
           </Button>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Secure payment via Razorpay
-          </p>
+          <p className="mt-3 text-xs text-muted-foreground">Secure payment via Razorpay</p>
         </div>
       </div>
       <PricingDialog open={pricingOpen} onOpenChange={setPricingOpen} />

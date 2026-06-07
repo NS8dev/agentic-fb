@@ -65,18 +65,23 @@ export function GarmentMenu({ value, onChange, className, compact, mobile }: Pro
           <Button
             variant="outline"
             size="sm"
-            className={
-              "h-10 justify-between gap-2 px-3 font-medium " + (className ?? "")
-            }
+            className={"h-10 justify-between gap-2 px-3 font-medium " + (className ?? "")}
           >
             <span className="flex min-w-0 items-center gap-1.5 truncate">
               <Shirt className="h-3.5 w-3.5 shrink-0 text-primary" />
-              <span className="truncate">{current.emoji} {current.label}</span>
+              <span className="truncate">
+                {current.emoji} {current.label}
+              </span>
             </span>
             <ChevronDown className="h-3.5 w-3.5 shrink-0 opacity-60" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="center" side="bottom" sideOffset={8} className="w-[calc(100vw-1.5rem)] max-h-[70vh] overflow-y-auto">
+        <DropdownMenuContent
+          align="center"
+          side="bottom"
+          sideOffset={8}
+          className="w-[calc(100vw-1.5rem)] max-h-[70vh] overflow-y-auto"
+        >
           <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
             Choose a garment
           </DropdownMenuLabel>
@@ -118,9 +123,7 @@ export function GarmentMenu({ value, onChange, className, compact, mobile }: Pro
         <Button
           variant="outline"
           size="sm"
-          className={
-            "h-9 justify-between gap-2 px-3 font-medium " + (className ?? "")
-          }
+          className={"h-9 justify-between gap-2 px-3 font-medium " + (className ?? "")}
         >
           <span className="flex items-center gap-1.5 truncate">
             <Shirt className="h-3.5 w-3.5 shrink-0 text-primary" />
@@ -144,9 +147,7 @@ export function GarmentMenu({ value, onChange, className, compact, mobile }: Pro
               <DropdownMenuSubTrigger className="gap-2">
                 <span className="text-base leading-none">{grp.emoji}</span>
                 <span>{grp.label}</span>
-                <span className="ml-auto text-[10px] text-muted-foreground">
-                  {items.length}
-                </span>
+                <span className="ml-auto text-[10px] text-muted-foreground">{items.length}</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent className="w-52 max-h-[60vh] overflow-y-auto">
                 {items.map((g) => (
@@ -154,8 +155,7 @@ export function GarmentMenu({ value, onChange, className, compact, mobile }: Pro
                     key={g.id}
                     onSelect={() => pick(g.id)}
                     className={
-                      "gap-2 " +
-                      (value === g.id ? "bg-primary/10 font-medium text-primary" : "")
+                      "gap-2 " + (value === g.id ? "bg-primary/10 font-medium text-primary" : "")
                     }
                   >
                     <span className="text-base leading-none">{g.emoji}</span>

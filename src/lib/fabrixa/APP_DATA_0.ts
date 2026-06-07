@@ -9,8 +9,12 @@ const ROOT = rootConfig as {
   db: {
     provider: "firebase" | "supabase";
     firebase: {
-      apiKey: string; authDomain: string; projectId: string;
-      storageBucket: string; messagingSenderId: string; appId: string;
+      apiKey: string;
+      authDomain: string;
+      projectId: string;
+      storageBucket: string;
+      messagingSenderId: string;
+      appId: string;
       measurementId?: string;
     };
   };
@@ -163,9 +167,21 @@ export const APP_DATA_0 = {
       render3d: 3,
     },
     render3dByType: {
-      shirt: 3, tshirt: 3, pant: 3, trackpants: 3, hoodie: 3,
-      skirt: 3, lehenga: 3, gown: 3, kurti: 3, kurta: 3, salwar: 3,
-      coat: 3, plazo: 3, jacket: 3, dress: 3,
+      shirt: 3,
+      tshirt: 3,
+      pant: 3,
+      trackpants: 3,
+      hoodie: 3,
+      skirt: 3,
+      lehenga: 3,
+      gown: 3,
+      kurti: 3,
+      kurta: 3,
+      salwar: 3,
+      coat: 3,
+      plazo: 3,
+      jacket: 3,
+      dress: 3,
     } as Record<string, number>,
   },
 
@@ -184,15 +200,78 @@ export const APP_DATA_0 = {
   perf: { maxTextureSize: 1024, maxAnisotropy: 8, targetFps: 30, dprCap: 2 },
 
   fabricPresets: {
-    cotton:  { roughness: 0.92, metalness: 0.00, sheen: 0.05, sheenRoughness: 0.9, clearcoat: 0.00, envIntensity: 0.65 },
-    linen:   { roughness: 0.96, metalness: 0.00, sheen: 0.10, sheenRoughness: 0.8, clearcoat: 0.00, envIntensity: 0.60 },
-    silk:    { roughness: 0.35, metalness: 0.05, sheen: 0.95, sheenRoughness: 0.20, clearcoat: 0.15, envIntensity: 0.95 },
-    satin:   { roughness: 0.25, metalness: 0.08, sheen: 0.85, sheenRoughness: 0.25, clearcoat: 0.25, envIntensity: 1.05 },
-    velvet:  { roughness: 0.98, metalness: 0.00, sheen: 1.00, sheenRoughness: 0.10, clearcoat: 0.00, envIntensity: 0.55 },
-    denim:   { roughness: 0.94, metalness: 0.00, sheen: 0.03, sheenRoughness: 0.9, clearcoat: 0.00, envIntensity: 0.55 },
-    chiffon: { roughness: 0.60, metalness: 0.00, sheen: 0.55, sheenRoughness: 0.4, clearcoat: 0.05, envIntensity: 0.85 },
-    wool:    { roughness: 0.98, metalness: 0.00, sheen: 0.35, sheenRoughness: 0.5, clearcoat: 0.00, envIntensity: 0.50 },
-    leather: { roughness: 0.45, metalness: 0.15, sheen: 0.15, sheenRoughness: 0.5, clearcoat: 0.40, envIntensity: 1.10 },
+    cotton: {
+      roughness: 0.92,
+      metalness: 0.0,
+      sheen: 0.05,
+      sheenRoughness: 0.9,
+      clearcoat: 0.0,
+      envIntensity: 0.65,
+    },
+    linen: {
+      roughness: 0.96,
+      metalness: 0.0,
+      sheen: 0.1,
+      sheenRoughness: 0.8,
+      clearcoat: 0.0,
+      envIntensity: 0.6,
+    },
+    silk: {
+      roughness: 0.35,
+      metalness: 0.05,
+      sheen: 0.95,
+      sheenRoughness: 0.2,
+      clearcoat: 0.15,
+      envIntensity: 0.95,
+    },
+    satin: {
+      roughness: 0.25,
+      metalness: 0.08,
+      sheen: 0.85,
+      sheenRoughness: 0.25,
+      clearcoat: 0.25,
+      envIntensity: 1.05,
+    },
+    velvet: {
+      roughness: 0.98,
+      metalness: 0.0,
+      sheen: 1.0,
+      sheenRoughness: 0.1,
+      clearcoat: 0.0,
+      envIntensity: 0.55,
+    },
+    denim: {
+      roughness: 0.94,
+      metalness: 0.0,
+      sheen: 0.03,
+      sheenRoughness: 0.9,
+      clearcoat: 0.0,
+      envIntensity: 0.55,
+    },
+    chiffon: {
+      roughness: 0.6,
+      metalness: 0.0,
+      sheen: 0.55,
+      sheenRoughness: 0.4,
+      clearcoat: 0.05,
+      envIntensity: 0.85,
+    },
+    wool: {
+      roughness: 0.98,
+      metalness: 0.0,
+      sheen: 0.35,
+      sheenRoughness: 0.5,
+      clearcoat: 0.0,
+      envIntensity: 0.5,
+    },
+    leather: {
+      roughness: 0.45,
+      metalness: 0.15,
+      sheen: 0.15,
+      sheenRoughness: 0.5,
+      clearcoat: 0.4,
+      envIntensity: 1.1,
+    },
   },
 
   tiling: {

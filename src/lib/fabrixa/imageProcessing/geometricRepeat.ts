@@ -28,12 +28,12 @@ export async function applyGeometricRepeat(
   out.height = th * 2;
   const ctx = out.getContext("2d")!;
 
-  const cellW = (out.width / tileRepeat) + gapX;
-  const cellH = (out.height / tileRepeat) + gapY;
+  const cellW = out.width / tileRepeat + gapX;
+  const cellH = out.height / tileRepeat + gapY;
 
   for (let row = -1; row <= tileRepeat + 1; row++) {
     for (let col = -1; col <= tileRepeat + 1; col++) {
-      const ox = (row % 2 === 0 || preset === "grid") ? 0 : offset * cellW;
+      const ox = row % 2 === 0 || preset === "grid" ? 0 : offset * cellW;
       const x = col * cellW + ox;
       const y = row * cellH;
 
@@ -44,7 +44,7 @@ export async function applyGeometricRepeat(
         if (col % 2 !== 0) ctx.scale(-1, 1);
         if (row % 2 !== 0) ctx.scale(1, -1);
       } else if (preset === "diagonal") {
-        ctx.rotate(((col + row) % 2 === 0 ? 0 : Math.PI / 2));
+        ctx.rotate((col + row) % 2 === 0 ? 0 : Math.PI / 2);
       }
 
       ctx.drawImage(img, -cellW / 2, -cellH / 2, cellW - gapX, cellH - gapY);

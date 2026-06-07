@@ -15,7 +15,10 @@ export function useUserDocSync(uid: string | null) {
 
   // 1) Hydrate from users/{uid} once per uid.
   useEffect(() => {
-    if (!uid) { lastUidRef.current = null; return; }
+    if (!uid) {
+      lastUidRef.current = null;
+      return;
+    }
     if (lastUidRef.current === uid) return;
     lastUidRef.current = uid;
     let cancelled = false;
@@ -43,9 +46,13 @@ export function useUserDocSync(uid: string | null) {
           };
           await saveUserDoc(uid, seed);
         }
-      } catch (e) { console.warn("[user-doc] hydrate failed", e); }
+      } catch (e) {
+        console.warn("[user-doc] hydrate failed", e);
+      }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [uid, hydrate]);
 
   // 2) Write-back: subscribe to store changes, debounce, mirror to users/{uid}.

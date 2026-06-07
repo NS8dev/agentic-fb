@@ -17,12 +17,39 @@ interface Props {
 }
 
 const NECK_PRESETS = [
-  { id: "boat", label: "Boat", prompt: "Embroidered boat neckline trim, gold thread on red silk, repeating motif, ornate Indian textile, top-down" },
-  { id: "v", label: "V-Neck", prompt: "V-neck embroidery border, intricate paisley, deep maroon with gold zari, traditional Indian" },
-  { id: "round", label: "Round", prompt: "Round neckline mirror-work embroidery, multicolor threads on ivory, festive Indian wear" },
-  { id: "square", label: "Square", prompt: "Square neckline geometric block print border, indigo on cream, hand-drawn" },
-  { id: "halter", label: "Halter", prompt: "Halter neck ornate floral embroidery, pastel pink and silver, delicate beadwork" },
-  { id: "keyhole", label: "Keyhole", prompt: "Keyhole neckline gold trim with small jewels, royal blue background, photorealistic" },
+  {
+    id: "boat",
+    label: "Boat",
+    prompt:
+      "Embroidered boat neckline trim, gold thread on red silk, repeating motif, ornate Indian textile, top-down",
+  },
+  {
+    id: "v",
+    label: "V-Neck",
+    prompt:
+      "V-neck embroidery border, intricate paisley, deep maroon with gold zari, traditional Indian",
+  },
+  {
+    id: "round",
+    label: "Round",
+    prompt:
+      "Round neckline mirror-work embroidery, multicolor threads on ivory, festive Indian wear",
+  },
+  {
+    id: "square",
+    label: "Square",
+    prompt: "Square neckline geometric block print border, indigo on cream, hand-drawn",
+  },
+  {
+    id: "halter",
+    label: "Halter",
+    prompt: "Halter neck ornate floral embroidery, pastel pink and silver, delicate beadwork",
+  },
+  {
+    id: "keyhole",
+    label: "Keyhole",
+    prompt: "Keyhole neckline gold trim with small jewels, royal blue background, photorealistic",
+  },
 ];
 
 function findNeckPart(g: GarmentType): string | null {
@@ -72,8 +99,8 @@ export function NeckDesignerPanel({ garment, balance, onApply }: Props) {
         </span>
       </div>
       <p className="text-xs text-muted-foreground">
-        Designs apply to <strong>{garment.parts.find((p) => p.id === partId)?.label}</strong>.
-        Uses AI daily cap + coin balance from your plan.
+        Designs apply to <strong>{garment.parts.find((p) => p.id === partId)?.label}</strong>. Uses
+        AI daily cap + coin balance from your plan.
       </p>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -85,7 +112,11 @@ export function NeckDesignerPanel({ garment, balance, onApply }: Props) {
             disabled={!!busyId}
             onClick={() => void run(np.prompt, np.id)}
           >
-            {busyId === np.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+            {busyId === np.id ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
             {np.label}
           </Button>
         ))}
@@ -93,13 +124,22 @@ export function NeckDesignerPanel({ garment, balance, onApply }: Props) {
 
       <div className="rounded-xl border bg-panel/80 p-3">
         <Label className="text-xs uppercase text-muted-foreground">Custom prompt</Label>
-        <Textarea value={custom} onChange={(e) => setCustom(e.target.value)} rows={3} className="mt-1.5" />
+        <Textarea
+          value={custom}
+          onChange={(e) => setCustom(e.target.value)}
+          rows={3}
+          className="mt-1.5"
+        />
         <Button
           className="mt-2 w-full"
           disabled={!!busyId || !custom.trim()}
           onClick={() => void run(custom, "custom")}
         >
-          {busyId === "custom" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+          {busyId === "custom" ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Sparkles className="mr-2 h-4 w-4" />
+          )}
           Generate custom ({cost} coins)
         </Button>
       </div>

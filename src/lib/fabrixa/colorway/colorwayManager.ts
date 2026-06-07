@@ -79,10 +79,7 @@ export function renameColorway(colorway: Colorway, name: string): Colorway {
   return { ...colorway, name };
 }
 
-export function deleteColorway(
-  state: ProjectColorways,
-  id: string,
-): ProjectColorways {
+export function deleteColorway(state: ProjectColorways, id: string): ProjectColorways {
   const colorways = state.colorways.filter((c) => c.id !== id);
   const activeColorwayId =
     state.activeColorwayId === id ? (colorways[0]?.id ?? null) : state.activeColorwayId;

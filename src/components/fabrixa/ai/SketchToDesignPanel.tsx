@@ -116,7 +116,13 @@ export function SketchToDesignPanel({ onGenerated, initialReference }: SketchToD
             <span className="text-xs text-muted-foreground">Upload sketch or reference</span>
           </div>
         )}
-        <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleFileUpload} />
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          className="hidden"
+          onChange={handleFileUpload}
+        />
       </div>
       <div className="space-y-2">
         <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

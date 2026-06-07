@@ -15,54 +15,52 @@ interface CoinButtonProps extends ButtonProps {
   iconOnly?: boolean;
 }
 
-export const CoinButton = forwardRef<HTMLButtonElement, CoinButtonProps>(
-  function CoinButton(
-    { action, qty = 1, onSpend, onClick, children, disabled, iconOnly, ...rest },
-    ref,
-  ) {
-    const costOf = useSubscriptionStore((s) => s.costOf);
-    const canAfford = useSubscriptionStore((s) => s.canAfford);
-    const spend = useSubscriptionStore((s) => s.spend);
-    const adminMode = useSubscriptionStore((s) => s.adminMode);
+export const CoinButton = forwardRef<HTMLButtonElement, CoinButtonProps>(function CoinButton(
+  { action, qty = 1, onSpend, onClick, children, disabled, iconOnly, ...rest },
+  ref,
+) {
+  const costOf = useSubscriptionStore((s) => s.costOf);
+  const canAfford = useSubscriptionStore((s) => s.canAfford);
+  const spend = useSubscriptionStore((s) => s.spend);
+  const adminMode = useSubscriptionStore((s) => s.adminMode);
 
-    const cost = costOf(action) * qty;
-    const affordable = canAfford(action, qty);
-    const locked = !affordable;
+  const cost = costOf(action) * qty;
+  const affordable = canAfford(action, qty);
+  const locked = !affordable;
 
-    return (
-      <Button
-        ref={ref}
-        {...rest}
-        disabled={disabled || locked}
-        onClick={async (e) => {
-          if (locked) {
-            e.preventDefault();
-            return;
-          }
-          const result = spend(action, qty);
-          if (!result.ok) {
-            e.preventDefault();
-            return;
-          }
-          await onSpend?.();
-          onClick?.(e);
-        }}
-      >
-        {locked ? (
-          <span className="inline-flex items-center gap-1.5">
-            <Coins className="h-3.5 w-3.5 opacity-60" />
-            Not enough coins
+  return (
+    <Button
+      ref={ref}
+      {...rest}
+      disabled={disabled || locked}
+      onClick={async (e) => {
+        if (locked) {
+          e.preventDefault();
+          return;
+        }
+        const result = spend(action, qty);
+        if (!result.ok) {
+          e.preventDefault();
+          return;
+        }
+        await onSpend?.();
+        onClick?.(e);
+      }}
+    >
+      {locked ? (
+        <span className="inline-flex items-center gap-1.5">
+          <Coins className="h-3.5 w-3.5 opacity-60" />
+          Not enough coins
+        </span>
+      ) : (
+        <span className="inline-flex items-center gap-1.5">
+          {!iconOnly && children}
+          <span className="inline-flex items-center gap-0.5 text-xs opacity-80">
+            <Coins className="h-3 w-3" />
+            {cost}
           </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5">
-            {!iconOnly && children}
-            <span className="inline-flex items-center gap-0.5 text-xs opacity-80">
-              <Coins className="h-3 w-3" />
-              {cost}
-            </span>
-          </span>
-        )}
-      </Button>
-    );
-  },
-);
+        </span>
+      )}
+    </Button>
+  );
+});

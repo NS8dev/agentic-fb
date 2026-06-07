@@ -19,7 +19,11 @@ export function getGeminiKey(cfg: AiCfg): string | null {
   return key;
 }
 
-export function geminiAuth(key: string, baseUrl: string, path: string): { url: string; headers: Record<string, string> } {
+export function geminiAuth(
+  key: string,
+  baseUrl: string,
+  path: string,
+): { url: string; headers: Record<string, string> } {
   const base = (baseUrl ?? "https://generativelanguage.googleapis.com/v1beta").replace(/\/$/, "");
   let url = `${base}${path}`;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
@@ -45,7 +49,9 @@ const blobToDataUrl = async (blob: Blob): Promise<string> => {
 };
 
 export function imageDataUrlFromGenerateContent(json: unknown): string | null {
-  const parts = (json as { candidates?: Array<{ content?: { parts?: unknown[] } }> })?.candidates?.[0]?.content?.parts ?? [];
+  const parts =
+    (json as { candidates?: Array<{ content?: { parts?: unknown[] } }> })?.candidates?.[0]?.content
+      ?.parts ?? [];
   for (const part of parts) {
     const p = part as { inlineData?: { mimeType?: string; data?: string } };
     if (p.inlineData?.data) {
@@ -75,7 +81,9 @@ export async function imageDataUrlFromImagesApi(json: unknown): Promise<string |
 }
 
 export function textFromGenerateContent(json: unknown): string | null {
-  const parts = (json as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> })?.candidates?.[0]?.content?.parts ?? [];
+  const parts =
+    (json as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> })
+      ?.candidates?.[0]?.content?.parts ?? [];
   const texts = parts.map((p) => p.text ?? "").filter(Boolean);
   return texts.length ? texts.join("\n").trim() : null;
 }
@@ -92,7 +100,10 @@ export async function generateGeminiImage(opts: GeminiImageOpts): Promise<string
   const key = getGeminiKey(opts.cfg);
   if (!key) throw new Error("Set GEMINI_API_KEY or GOOGLE_AI_API_KEY environment variable");
 
-  const refs = (opts.referenceImages ?? []).map(parseDataUrl).filter(Boolean) as { mimeType: string; data: string }[];
+  const refs = (opts.referenceImages ?? []).map(parseDataUrl).filter(Boolean) as {
+    mimeType: string;
+    data: string;
+  }[];
   const parts: unknown[] = [{ text: opts.prompt }];
   for (const ref of refs) {
     parts.push({ inline_data: { mime_type: ref.mimeType, data: ref.data } });
@@ -121,7 +132,10 @@ export async function generateGeminiImage(opts: GeminiImageOpts): Promise<string
   }
 
   // Fallback: images:generate endpoint
-  const base = (opts.cfg.baseUrl ?? "https://generativelanguage.googleapis.com/v1beta2").replace(/\/$/, "");
+  const base = (opts.cfg.baseUrl ?? "https://generativelanguage.googleapis.com/v1beta2").replace(
+    /\/$/,
+    "",
+  );
   const { url, headers } = geminiAuth(key, base, "/images:generate");
   const res = await fetch(url, {
     method: "POST",

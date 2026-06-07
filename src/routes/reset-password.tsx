@@ -60,9 +60,7 @@ function ResetPassword() {
           <div>
             <h1 className="text-xl font-semibold tracking-tight">Set a new password</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {ready
-                ? "Enter your new password below."
-                : "Verifying your reset link…"}
+              {ready ? "Enter your new password below." : "Verifying your reset link…"}
             </p>
           </div>
           <div className="space-y-1.5">

@@ -3,9 +3,7 @@
 import type { SubscriptionTier } from "./entitlements";
 import type { SubscriptionTierId } from "./APP_DATA_0";
 
-export function storeTierFromSupabase(
-  tier: SubscriptionTier,
-): SubscriptionTierId | null {
+export function storeTierFromSupabase(tier: SubscriptionTier): SubscriptionTierId | null {
   if (tier === "none") return null;
   if (tier.startsWith("creator")) return "starter_4000";
   if (tier.startsWith("studio")) return "studio_16000";

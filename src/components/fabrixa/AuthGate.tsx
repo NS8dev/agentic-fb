@@ -22,9 +22,7 @@ export function AuthGate({ children }: Props) {
   const clearPlanState = useSubscriptionStore((s) => s.clearPlanState);
   const activateTier = useSubscriptionStore((s) => s.activateTier);
   const hydrateFromUserDoc = useSubscriptionStore((s) => s.hydrateFromUserDoc);
-  const applyDailyResetIfNeeded = useSubscriptionStore(
-    (s) => s.applyDailyResetIfNeeded,
-  );
+  const applyDailyResetIfNeeded = useSubscriptionStore((s) => s.applyDailyResetIfNeeded);
   const setAdminMode = useSubscriptionStore((s) => s.setAdminMode);
   const { signOut } = useAuth();
 
@@ -51,9 +49,7 @@ export function AuthGate({ children }: Props) {
       if (!adminMode) resetAll();
       return;
     }
-    void ensureUserProfile(user.uid, user.email).then(() =>
-      invalidateEntitlements(),
-    );
+    void ensureUserProfile(user.uid, user.email).then(() => invalidateEntitlements());
   }, [user, adminMode, resetAll, invalidateEntitlements]);
 
   useEffect(() => {
@@ -62,18 +58,12 @@ export function AuthGate({ children }: Props) {
     if (!storeTier) return;
     hydrateFromUserDoc({
       subscriptionTier: storeTier,
-      basePlanExpiry: ent.basePlanExpiry
-        ? new Date(ent.basePlanExpiry).getTime()
-        : null,
+      basePlanExpiry: ent.basePlanExpiry ? new Date(ent.basePlanExpiry).getTime() : null,
       coinBalance: ent.coinBalance,
       dailyAllowance: ent.dailyAllowance,
-      lastDailyResetAt: ent.lastDailyResetAt
-        ? new Date(ent.lastDailyResetAt).getTime()
-        : 0,
+      lastDailyResetAt: ent.lastDailyResetAt ? new Date(ent.lastDailyResetAt).getTime() : 0,
       hasAiPack: ent.hasAiPack,
-      aiPackExpiry: ent.aiPackExpiry
-        ? new Date(ent.aiPackExpiry).getTime()
-        : null,
+      aiPackExpiry: ent.aiPackExpiry ? new Date(ent.aiPackExpiry).getTime() : null,
       dailyAiRequestsRemaining: ent.dailyAiRequestsRemaining,
       dailyShowroomDownloadsCount: ent.dailyShowroomDownloadsCount,
     });

@@ -16,11 +16,7 @@ export function useWorkspaceAccess() {
       isCanonicalTierActive(ent.subscriptionTier, ent.basePlanExpiry));
 
   const canAccessWorkspace =
-    adminMode ||
-    (isAuthenticated &&
-      hasActivePlan &&
-      !authLoading &&
-      (isFetched && !entLoading));
+    adminMode || (isAuthenticated && hasActivePlan && !authLoading && isFetched && !entLoading);
 
   return {
     user,

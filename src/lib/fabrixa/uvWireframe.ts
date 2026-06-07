@@ -4,7 +4,7 @@ import * as THREE from "three";
  * Extracts the UV mapping from a THREE.Mesh and renders it as a 2D wireframe
  * on a canvas. This is used in the FabricEditor as a visual guide for the user
  * to align patterns perfectly with the 3D model's seams.
- * 
+ *
  * @param mesh The 3D mesh to extract UVs from.
  * @param size Resolution of the output canvas.
  * @returns A data URL of the rendered wireframe.
@@ -22,9 +22,9 @@ export function generateUvWireframe(mesh: THREE.Mesh, size = 1024): string {
   canvas.width = size;
   canvas.height = size;
   const ctx = canvas.getContext("2d")!;
-  
+
   ctx.clearRect(0, 0, size, size);
-  
+
   ctx.strokeStyle = "rgba(126, 60, 140, 0.4)"; // Primary color, partially transparent
   ctx.lineWidth = 1;
   ctx.lineJoin = "round";
@@ -38,7 +38,7 @@ export function generateUvWireframe(mesh: THREE.Mesh, size = 1024): string {
     // We don't invert Y because we enforce flipY = false on the texture cache.
     // WebGL Y=0 matches Fabric.js Canvas Y=0 for these glTF models.
     const u0x = uv.getX(a) * size;
-    const u0y = uv.getY(a) * size; 
+    const u0y = uv.getY(a) * size;
     const u1x = uv.getX(b) * size;
     const u1y = uv.getY(b) * size;
     const u2x = uv.getX(c) * size;

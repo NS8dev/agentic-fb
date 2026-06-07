@@ -1,5 +1,11 @@
 // Image cleanup — median denoise, edge-preserving smooth, unsharp mask.
-import { loadImage, imageToCanvas, canvasToDataUrl, getImageData, putImageData } from "./canvasUtils";
+import {
+  loadImage,
+  imageToCanvas,
+  canvasToDataUrl,
+  getImageData,
+  putImageData,
+} from "./canvasUtils";
 
 function medianFilter(data: ImageData, radius: number): ImageData {
   const { width: w, height: h, data: d } = data;

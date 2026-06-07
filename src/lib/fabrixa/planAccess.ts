@@ -21,9 +21,7 @@ export function garmentsForPlan(
   tierId: SubscriptionTierId | null,
   adminMode: boolean,
 ): GarmentType[] {
-  return AVAILABLE_GARMENTS.filter((g) =>
-    isGarmentAllowedForTier(g.id, tierId, adminMode),
-  );
+  return AVAILABLE_GARMENTS.filter((g) => isGarmentAllowedForTier(g.id, tierId, adminMode));
 }
 
 export function usePlanGarments(): GarmentType[] {

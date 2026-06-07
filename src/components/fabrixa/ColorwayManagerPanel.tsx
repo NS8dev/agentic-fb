@@ -98,13 +98,30 @@ function ColorwayRow({
         </div>
       )}
       <div className="flex gap-1">
-        <Button size="sm" variant={active ? "secondary" : "default"} className="h-7 flex-1 text-[10px]" onClick={onApply}>
+        <Button
+          size="sm"
+          variant={active ? "secondary" : "default"}
+          className="h-7 flex-1 text-[10px]"
+          onClick={onApply}
+        >
           Apply
         </Button>
-        <Button size="sm" variant="ghost" className="h-7 px-2" onClick={onDuplicate} title="Duplicate">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 px-2"
+          onClick={onDuplicate}
+          title="Duplicate"
+        >
           <Copy className="h-3 w-3" />
         </Button>
-        <Button size="sm" variant="ghost" className="h-7 px-2 text-destructive" onClick={onDelete} title="Delete">
+        <Button
+          size="sm"
+          variant="ghost"
+          className="h-7 px-2 text-destructive"
+          onClick={onDelete}
+          title="Delete"
+        >
           <Trash2 className="h-3 w-3" />
         </Button>
       </div>

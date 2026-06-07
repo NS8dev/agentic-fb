@@ -47,25 +47,39 @@ export interface SubscriptionState {
   activateAiPack: () => void;
   resetAll: () => void;
   clearPlanState: () => void;
-  hydrateFromUserDoc: (doc: Partial<{
-    subscriptionTier: SubscriptionTierId | null;
-    basePlanExpiry: number | null;
-    coinBalance: number;
-    dailyAllowance: number;
-    lastDailyResetAt: number;
-    hasAiPack: boolean;
-    aiPackExpiry: number | null;
-    dailyAiRequestsRemaining: number;
-    dailyShowroomDownloadsCount: number;
-    unlockedShowroomDesigns: string[];
-  }>) => void;
+  hydrateFromUserDoc: (
+    doc: Partial<{
+      subscriptionTier: SubscriptionTierId | null;
+      basePlanExpiry: number | null;
+      coinBalance: number;
+      dailyAllowance: number;
+      lastDailyResetAt: number;
+      hasAiPack: boolean;
+      aiPackExpiry: number | null;
+      dailyAiRequestsRemaining: number;
+      dailyShowroomDownloadsCount: number;
+      unlockedShowroomDesigns: string[];
+    }>,
+  ) => void;
 }
 
-const INITIAL: Omit<SubscriptionState,
-  | "setUid" | "setAdminMode" | "isExpired" | "isAiPackActive"
-  | "canAfford" | "costOf" | "spend" | "registerSave"
-  | "registerShowroomDownload" | "applyDailyResetIfNeeded"
-  | "activateTier" | "activateAiPack" | "resetAll" | "clearPlanState" | "hydrateFromUserDoc"
+const INITIAL: Omit<
+  SubscriptionState,
+  | "setUid"
+  | "setAdminMode"
+  | "isExpired"
+  | "isAiPackActive"
+  | "canAfford"
+  | "costOf"
+  | "spend"
+  | "registerSave"
+  | "registerShowroomDownload"
+  | "applyDailyResetIfNeeded"
+  | "activateTier"
+  | "activateAiPack"
+  | "resetAll"
+  | "clearPlanState"
+  | "hydrateFromUserDoc"
 > = {
   uid: null,
   adminMode: false,
@@ -202,7 +216,8 @@ export const useSubscriptionStore = create<SubscriptionState>()(
           coinBalance: tier.dailyAllowance,
           dailyAllowance: tier.dailyAllowance,
           dailyShowroomDownloadsCount: 0,
-          dailyAiRequestsRemaining: tier.aiIncluded || s.hasAiPack ? APP_DATA_0.aiPack.dailyRequests : 0,
+          dailyAiRequestsRemaining:
+            tier.aiIncluded || s.hasAiPack ? APP_DATA_0.aiPack.dailyRequests : 0,
           lastDailyResetAt: now(),
         });
       },
@@ -313,4 +328,3 @@ export function isBackgroundAllowed(bgId: string): boolean {
   if (tier.allowedBackgrounds === "ALL") return true;
   return (tier.allowedBackgrounds as readonly string[]).includes(bgId.toLowerCase());
 }
-

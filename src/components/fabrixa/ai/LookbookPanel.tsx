@@ -1,7 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { User, Download } from "lucide-react";
 import { toast } from "sonner";
 import { CoinCostBadge } from "@/components/fabrixa/CoinCostBadge";
@@ -93,7 +99,9 @@ export function LookbookPanel({ textureImage, garmentType }: LookbookPanelProps)
         </p>
       )}
       <div className="space-y-2">
-        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Model</Label>
+        <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Model
+        </Label>
         <Select value={gender} onValueChange={(v) => setGender(v as "woman" | "man")}>
           <SelectTrigger className="bg-background/50">
             <SelectValue />
@@ -136,7 +144,12 @@ export function LookbookPanel({ textureImage, garmentType }: LookbookPanelProps)
             )}
           </div>
           {frontUrl && (
-            <Button size="sm" variant="ghost" className="w-full" onClick={() => download(frontUrl, "lookbook-front.png")}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="w-full"
+              onClick={() => download(frontUrl, "lookbook-front.png")}
+            >
               <Download className="mr-1 h-3 w-3" /> Download
             </Button>
           )}
@@ -153,7 +166,12 @@ export function LookbookPanel({ textureImage, garmentType }: LookbookPanelProps)
             )}
           </div>
           {backUrl && (
-            <Button size="sm" variant="ghost" className="w-full" onClick={() => download(backUrl, "lookbook-back.png")}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="w-full"
+              onClick={() => download(backUrl, "lookbook-back.png")}
+            >
               <Download className="mr-1 h-3 w-3" /> Download
             </Button>
           )}

@@ -1,15 +1,10 @@
 // POST /api/create-order — Razorpay order from canonical tier prices (APP_DATA_0.json).
 import { createFileRoute } from "@tanstack/react-router";
 import { APP_DATA_0 } from "@/lib/fabrixa/APP_DATA_0";
-import {
-  canonicalTierMeta,
-  canonicalTierPriceInr,
-} from "@/lib/fabrixa/canonicalTiers";
+import { canonicalTierMeta, canonicalTierPriceInr } from "@/lib/fabrixa/canonicalTiers";
 import type { SubscriptionTier } from "@/lib/fabrixa/entitlements";
 
-type Plan =
-  | { kind: "tier"; tierId: SubscriptionTier }
-  | { kind: "aiPack" };
+type Plan = { kind: "tier"; tierId: SubscriptionTier } | { kind: "aiPack" };
 
 function amountPaise(plan: Plan): { amount: number; label: string } {
   if (plan.kind === "tier") {
@@ -37,8 +32,7 @@ export const Route = createFileRoute("/api/create-order")({
           const { rzp_key_id, rzp_key_secret, currency } = APP_DATA_0.razorpay;
 
           const isDummy =
-            /DUMMY|REPLACE_ME|12345/i.test(rzp_key_id) ||
-            /DUMMY|REPLACE_ME/i.test(rzp_key_secret);
+            /DUMMY|REPLACE_ME|12345/i.test(rzp_key_id) || /DUMMY|REPLACE_ME/i.test(rzp_key_secret);
 
           if (isDummy) {
             return Response.json({

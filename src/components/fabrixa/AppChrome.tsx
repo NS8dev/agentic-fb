@@ -3,13 +3,7 @@ import { Sparkles } from "lucide-react";
 
 const TEAM = "Axiom Dynamics";
 
-export function AppHeader({
-  right,
-  minimal,
-}: {
-  right?: ReactNode;
-  minimal?: boolean;
-}) {
+export function AppHeader({ right, minimal }: { right?: ReactNode; minimal?: boolean }) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur-xl">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
@@ -20,9 +14,7 @@ export function AppHeader({
           <div>
             <div className="text-sm font-semibold tracking-tight">Fabrixa</div>
             {!minimal && (
-              <div className="text-[10px] text-muted-foreground">
-                Textile & garment studio
-              </div>
+              <div className="text-[10px] text-muted-foreground">Textile & garment studio</div>
             )}
           </div>
         </div>

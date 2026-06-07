@@ -101,11 +101,12 @@ export function SettingsPanel({
     savePrefs({ exportQuality, defaultGarmentId, sceneId });
   }, [exportQuality, defaultGarmentId, sceneId]);
 
-  const planLabel = ent?.subscriptionTier && ent.subscriptionTier !== "none"
-    ? ent.subscriptionTier.replace(/_/g, " ")
-    : subTier
-      ? APP_DATA_0.tiers[subTier]?.label ?? subTier
-      : "No plan";
+  const planLabel =
+    ent?.subscriptionTier && ent.subscriptionTier !== "none"
+      ? ent.subscriptionTier.replace(/_/g, " ")
+      : subTier
+        ? (APP_DATA_0.tiers[subTier]?.label ?? subTier)
+        : "No plan";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -115,9 +116,7 @@ export function SettingsPanel({
             <Settings className="h-4 w-4" />
             Settings
           </DialogTitle>
-          <DialogDescription>
-            Account, studio defaults, and appearance.
-          </DialogDescription>
+          <DialogDescription>Account, studio defaults, and appearance.</DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="account" className="w-full">
@@ -144,17 +143,13 @@ export function SettingsPanel({
             <div className="flex items-center gap-3 rounded-xl border bg-muted/30 p-4">
               <Avatar className="h-12 w-12 ring-2 ring-background">
                 {user?.photoURL ? <AvatarImage src={user.photoURL} /> : null}
-                <AvatarFallback>
-                  {(user?.email ?? "U")[0].toUpperCase()}
-                </AvatarFallback>
+                <AvatarFallback>{(user?.email ?? "U")[0].toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="min-w-0 flex-1">
                 <div className="truncate font-semibold">
                   {user?.displayName ?? user?.email ?? "User"}
                 </div>
-                <div className="truncate text-xs text-muted-foreground">
-                  {user?.email}
-                </div>
+                <div className="truncate text-xs text-muted-foreground">{user?.email}</div>
               </div>
               <Button size="sm" variant="outline" onClick={onSignOut}>
                 <LogOut className="mr-1.5 h-3.5 w-3.5" />
@@ -235,9 +230,7 @@ export function SettingsPanel({
             <PrefRow label="Default export quality">
               <Select
                 value={exportQuality}
-                onValueChange={(v) =>
-                  setExportQuality(v as "web" | "print" | "hd")
-                }
+                onValueChange={(v) => setExportQuality(v as "web" | "print" | "hd")}
               >
                 <SelectTrigger className="h-9 w-[180px]">
                   <SelectValue />
@@ -318,8 +311,7 @@ export function SettingsPanel({
               <p className="font-medium text-foreground">Fabrixa Studio</p>
               <p className="mt-1">Built by Axiom Dynamics</p>
               <p className="mt-2 opacity-80">
-                Cloud sync, subscriptions, and coin balances are stored securely
-                in your account.
+                Cloud sync, subscriptions, and coin balances are stored securely in your account.
               </p>
             </div>
           </TabsContent>
@@ -356,13 +348,7 @@ function StatCard({
   );
 }
 
-function PrefRow({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function PrefRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-2 rounded-lg border bg-background px-3 py-3 sm:flex-row sm:items-center sm:justify-between">
       <Label className="text-xs text-muted-foreground">{label}</Label>

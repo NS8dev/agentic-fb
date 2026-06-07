@@ -25,7 +25,8 @@ function createAlphaMask(mask: HTMLImageElement, width: number, height: number):
   const img = ctx.getImageData(0, 0, width, height);
   for (let i = 0; i < img.data.length; i += 4) {
     // Preserve existing alpha if present, but also consider luminance
-    const luminance = (img.data[i] * 0.2126 + img.data[i + 1] * 0.7152 + img.data[i + 2] * 0.0722) / 255;
+    const luminance =
+      (img.data[i] * 0.2126 + img.data[i + 1] * 0.7152 + img.data[i + 2] * 0.0722) / 255;
     img.data[i] = 255;
     img.data[i + 1] = 255;
     img.data[i + 2] = 255;
@@ -40,7 +41,7 @@ function createAlphaMask(mask: HTMLImageElement, width: number, height: number):
  * Composites a stack of layers onto a base texture, returning a new data URL.
  * Base color is NOT baked in, keeping the background transparent if no base texture is provided,
  * allowing the 3D material color to tint the untextured areas.
- * 
+ *
  * @param baseTextureUrl - Optional base repeating texture
  * @param layers - Array of DesignLayers to composite on top
  * @param width - Resolution of the output texture (default 1024)
@@ -50,13 +51,13 @@ export async function compositeLayers(
   baseTextureUrl: string | null,
   layers: DesignLayer[],
   width: number = 1024,
-  height: number = 1024
+  height: number = 1024,
 ): Promise<string | null> {
   const out = document.createElement("canvas");
   out.width = width;
   out.height = height;
   const octx = out.getContext("2d")!;
-  
+
   let hasContent = false;
 
   // 1. Draw base layer
@@ -76,7 +77,7 @@ export async function compositeLayers(
 
     try {
       const contentImg = await loadImg(layer.contentDataUrl);
-      
+
       octx.save();
       octx.globalAlpha = layer.opacity !== undefined ? layer.opacity : 1;
 
@@ -87,7 +88,7 @@ export async function compositeLayers(
         tmp.width = width;
         tmp.height = height;
         const tctx = tmp.getContext("2d")!;
-        
+
         tctx.drawImage(contentImg, 0, 0, width, height);
         tctx.globalCompositeOperation = "destination-in";
         tctx.drawImage(createAlphaMask(maskImg, width, height), 0, 0);

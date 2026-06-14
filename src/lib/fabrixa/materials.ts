@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { type FabricPresetId } from "./APP_DATA_0";
+import { type FabricPresetId } from "@/lib/fabrixa/APP_DATA_0";
 
 export interface TextilePreset {
   roughness: number;

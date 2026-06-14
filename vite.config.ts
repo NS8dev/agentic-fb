@@ -8,12 +8,14 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 export default defineConfig({
   resolve: {
     alias: {
+      "@": path.resolve(__dirname, "src"),
       fabric: path.resolve(__dirname, "node_modules/fabric/dist/index.js"),
       "firebase/firestore": path.resolve(
         __dirname,
         "node_modules/firebase/firestore/dist/esm/index.esm.js",
       ),
     },
+    extensions: [".mjs", ".js", ".mts", ".ts", ".jsx", ".tsx", ".json"],
   },
   optimizeDeps: {
     include: [
@@ -22,6 +24,7 @@ export default defineConfig({
     ],
   },
   plugins: [
+    tsconfigPaths(),
     tanstackStart({
       server: {
         preset: "vercel",
@@ -29,6 +32,5 @@ export default defineConfig({
     }),
     react(),
     tailwindcss(),
-    tsconfigPaths(),
   ],
 });

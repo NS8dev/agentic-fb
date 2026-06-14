@@ -8,6 +8,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 export default defineConfig({
   resolve: {
     alias: {
+      "@": path.resolve(__dirname, "./src"),
       fabric: path.resolve(__dirname, "node_modules/fabric/dist/index.js"),
       "firebase/firestore": path.resolve(
         __dirname,

@@ -1,0 +1,375 @@
+---
+name: AI Studio Feature Suite
+overview: "Deliver the full AI + algorithm feature suite in 4 phased releases: (1) AI Studio panels with coin gating and textile system prompts, (2) 2D canvas algorithms, (3) advanced colorway manager, (4) lookbook garment renders — each phase fully wired, gated, and testable before the next."
+todos:
+  - id: phase1-foundation
+    content: Add featureCosts to APP_DATA_0.json, extend FeatureCostKey, fix multimodal generate.ts, create prompts.ts
+    status: completed
+  - id: phase1-panels
+    content: "Restructure AIStudioPanel into tabs: Text to Design, Sketch to Design, Smart Palette, Prompt Enhancer + API routes"
+    status: in_progress
+  - id: phase2-algorithms
+    content: Build imageProcessing libs (seamless, geometric repeat, color separation, clean) + vectorize; wire FabricEditor toolbar/tabs
+    status: pending
+  - id: phase3-colorway
+    content: Add Colorway state, colorwayManager.ts, ColorwayManagerPanel in 3D sidebar + Smart Palette integration
+    status: pending
+  - id: phase4-lookbook
+    content: Build LookbookPanel + /api/ai/lookbook with texture reference, front/back renders, coin gating
+    status: pending
+isProject: false
+---
+
+# AI Studio & Advanced Design Feature Suite (Phased)
+
+## Current baseline
+
+- **AI Studio** is a single prompt panel in [`AIStudioPanel.tsx`](src/components/fabrixa/AIStudioPanel.tsx) calling `POST /api/ai/generate` with `task: "imageGen"` only.
+- **Coin gating** uses `FeatureCostKey` in [`entitlements.ts`](src/lib/fabrixa/entitlements.ts); costs resolve from `APP_DATA_0.json.featureCosts` (missing today) → fallback to [`APP_DATA_0.ts`](src/lib/fabrixa/APP_DATA_0.ts) `coinCosts`.
+- **Critical gap**: `referenceImage` in [`generate.ts`](src/routes/api/ai/generate.ts) is only woven into text — not sent as multimodal bytes. Sketch-to-design, lookbook, and image-edit cannot work until this is fixed.
+- **2D tools**: [`FabricEditor.tsx`](src/components/fabrixa/FabricEditor.tsx) has geometric tiling (`applyAdvancedTiling`) but no seamless extend, vectorize, color separation, or clean image.
+- **Color**: [`ColorPanel.tsx`](src/components/fabrixa/ColorPanel.tsx) handles solid/gradient only — no colorway variants.
+
+```mermaid
+flowchart TB
+  subgraph ui [UI Panels]
+    AIStudio[AIStudioPanel tabs]
+    FabricTools[FabricEditor tools]
+    ColorwayPanel[ColorwayManagerPanel]
+    Lookbook[LookbookPanel]
+  end
+  subgraph gate [Coin Gating]
+    RunGated[useRunGated]
+    Entitlements[entitlements.ts]
+    Spend[persistFeatureSpend]
+  end
+  subgraph api [Google Gemini API]
+    Generate[/api/ai/generate]
+    Enhance[/api/ai/enhance-prompt]
+    Palette[/api/ai/smart-palette]
+    LookbookAPI[/api/ai/lookbook]
+  end
+  subgraph algo [Client Algorithms]
+    Seamless[seamlessTile.ts]
+    ColorSep[colorSeparation.ts]
+    Clean[imageClean.ts]
+    GeoRepeat[geometricRepeat.ts]
+    Vectorize[tracePattern.ts]
+    ColorwayLib[colorwayManager.ts]
+  end
+  AIStudio --> RunGated --> api
+  FabricTools --> RunGated
+  FabricTools --> algo
+  ColorwayPanel --> ColorwayLib
+  Lookbook --> RunGated --> LookbookAPI
+  RunGated --> Entitlements --> Spend
+```
+
+---
+
+## Shared foundation (done in Phase 1, reused everywhere)
+
+### 1. Coin costs in `APP_DATA_0`
+
+Add `featureCosts` block to [`APP_DATA_0.json`](APP_DATA_0.json) (dummy test values):
+
+```json
+"featureCosts": {
+  "AI_TEXT_TO_DESIGN": 8,
+  "AI_SKETCH_TO_DESIGN": 10,
+  "AI_SMART_PALETTE": 3,
+  "AI_PROMPT_ENHANCE": 2,
+  "AI_LOOKBOOK_RENDER": 15,
+  "IMAGE_CLEAN": 4,
+  "PATTERN_VECTORIZE": 5,
+  "COLOR_SEPARATION": 4,
+  "SEAMLESS_EXTEND": 3,
+  "GEOMETRIC_REPEAT": 2
+}
+```
+
+Mirror keys in [`APP_DATA_0.ts`](src/lib/fabrixa/APP_DATA_0.ts) `coinCosts` for admin-mode fallback.
+
+### 2. Extend `FeatureCostKey` + daily AI cap
+
+In [`entitlements.ts`](src/lib/fabrixa/entitlements.ts), add all 10 keys above.
+
+In [`spendFeature.ts`](src/lib/fabrixa/spendFeature.ts) and `checkDailyCap`, treat these as AI-capped (same as `AI_GENERATION`):
+
+- `AI_TEXT_TO_DESIGN`, `AI_SKETCH_TO_DESIGN`, `AI_SMART_PALETTE`, `AI_PROMPT_ENHANCE`, `AI_LOOKBOOK_RENDER`
+
+Algorithm keys (`IMAGE_CLEAN`, `PATTERN_VECTORIZE`, etc.) deduct coins only — no daily AI cap.
+
+Update [`runGated.ts`](src/lib/fabrixa/runGated.ts) admin `FeatureCostKey → CoinAction` mapping.
+
+### 3. Centralized textile system prompts
+
+New file: `src/lib/fabrixa/ai/prompts.ts`
+
+| Export | Purpose |
+|--------|---------|
+| `TEXTILE_SEAMLESS_SUFFIX` | Tileable, edge-matched, no text/watermarks, fabric-print ready |
+| `promptForTextToDesign(userPrompt)` | Text → seamless pattern |
+| `promptForSketchToDesign(userPrompt)` | Sketch reference → production pattern |
+| `promptForSmartPalette(context)` | Extract harmonized palette from image + style brief |
+| `promptForPromptEnhance(raw)` | Expand vague prompt into repeatable textile spec |
+| `promptForImageClean()` | Denoise, sharpen, remove artifacts, preserve pattern |
+| `promptForLookbook(opts)` | Faceless model, front/back, exact texture, realistic drape |
+
+All image-gen tasks in [`generate.ts`](src/routes/api/ai/generate.ts) import from `prompts.ts` instead of inline strings.
+
+### 4. Fix multimodal Gemini requests
+
+Refactor [`generate.ts`](src/routes/api/ai/generate.ts):
+
+- Parse `referenceImage` data URL → `inlineData` part alongside text prompt.
+- Add tasks: `textToDesign`, `sketchToDesign`, `imageClean`, `lookbookFront`, `lookbookBack`.
+- Use `cfg.imageModel` (`gemini-2.5-flash-image`) for image tasks; `cfg.textModel` for text-only (`promptEnhance`, `smartPalette` JSON).
+- Unify client calls through [`ai.ts`](src/lib/fabrixa/ai.ts) `generateImage()` (replace direct `fetch` in AIStudioPanel) with demo fallback when key is `REPLACE_ME`.
+
+---
+
+## Phase 1 — AI Studio panels (release first)
+
+**Goal**: Tabbed AI Studio with 4 working AI features, each in its own panel, coin-gated, with prompt enhancer utility.
+
+### UI: Restructure [`AIStudioPanel.tsx`](src/components/fabrixa/AIStudioPanel.tsx)
+
+Replace single layout with tabs:
+
+| Tab | Panel component | Feature key | Behavior |
+|-----|-----------------|-------------|----------|
+| Text to Design | `TextToDesignPanel` | `AI_TEXT_TO_DESIGN` | Prompt + optional enhancer → `task: textToDesign` |
+| Sketch to Design | `SketchToDesignPanel` | `AI_SKETCH_TO_DESIGN` | Upload sketch (required) + prompt → `task: sketchToDesign` |
+| Smart Palette | `SmartPalettePanel` | `AI_SMART_PALETTE` | From current design or upload → palette swatches + apply to `PartState.color` / gradient |
+| Prompt Enhancer | inline in Text/Sketch tabs | `AI_PROMPT_ENHANCE` | "Enhance" button calls `/api/ai/enhance-prompt` before generate |
+
+Each panel shows `<CoinCostBadge feature="..." />` and uses `useRunGated(featureKey, action)`.
+
+Shared history grid stays at bottom; actions: Apply to 3D, Edit in 2D, Download.
+
+### New API routes
+
+| Route | Input | Output |
+|-------|-------|--------|
+| `src/routes/api/ai/enhance-prompt.ts` | `{ prompt, context?: "textile" }` | `{ enhancedPrompt }` (Gemini text model) |
+| `src/routes/api/ai/smart-palette.ts` | `{ referenceImage?, styleBrief? }` | `{ colors: string[], names?: string[] }` |
+
+Extend `generate.ts` tasks for `textToDesign` and `sketchToDesign`.
+
+### Secondary placement (expected locations)
+
+- **3D Preview sidebar** ([`FabrixaApp.tsx`](src/components/fabrixa/FabrixaApp.tsx) ~1271): "Smart Palette" quick action button → opens AI tab pre-selected.
+- **FabricEditor** toolbar: "AI Design" shortcut → switches view to AI Studio with current canvas exported as reference.
+
+### Phase 1 acceptance criteria
+
+- Each tab generates a result or shows clear error (no silent fail).
+- Coins deducted atomically; insufficient balance blocks action with toast.
+- Daily AI cap enforced on all 4 AI keys.
+- Demo mode works without API key (canvas placeholder pattern).
+- Results apply to 3D texture and 2D editor without clearing layers unexpectedly (match existing `onResult` behavior).
+
+---
+
+## Phase 2 — 2D canvas algorithms
+
+**Goal**: Client-side image processing in dedicated libs, toolbar + Tiling tab integration, coin-gated where specified.
+
+### New library modules
+
+```
+src/lib/fabrixa/imageProcessing/
+  seamlessTile.ts      — offset-merge + Poisson-style edge blend
+  geometricRepeat.ts   — grid/brick/half-drop/mirror/diagonal presets
+  colorSeparation.ts   — median-cut + k-means → N plate PNGs
+  imageClean.ts        — bilateral denoise + unsharp; optional AI pass
+src/lib/fabrixa/vectorize/
+  tracePattern.ts      — edge detect → simplify → fabric.Path / SVG group
+```
+
+#### `seamlessTile.ts` algorithm
+
+1. Split image into quadrants; swap opposite halves (classic offset method).
+2. Detect seam band (center cross) via gradient magnitude.
+3. Feather blend seam pixels (multi-band blending).
+4. Validate tileability: render 2×2 preview; compute edge delta score; retry with wider blend if score > threshold.
+
+#### `geometricRepeat.ts`
+
+Extract preset logic from `applyAdvancedTiling()` in FabricEditor; add mirror and diagonal transforms; expose `applyPreset(canvas, "brick" | "halfDrop" | "mirror" | "diagonal")`.
+
+#### `colorSeparation.ts`
+
+1. Downsample for clustering (max 256×256).
+2. K-means (k=2–8, user-selected) in Lab color space.
+3. Generate per-channel binary masks + flat color plates.
+4. Export as new `DesignLayer` entries or side-panel previews.
+
+#### `imageClean.ts`
+
+1. **Algorithm path** (default, fast): median filter on high-frequency noise, bilateral preserve edges, mild unsharp mask, optional white-background normalization.
+2. **AI path** (optional toggle, `IMAGE_CLEAN` + AI cap): call `generate.ts` `task: imageClean` with current image as reference.
+
+#### `tracePattern.ts`
+
+1. Posterize to ≤8 colors.
+2. Canny/Sobel edge detection on canvas.
+3. Path tracing via `imagetracerjs` (add dependency) or custom Douglas-Peucker simplification.
+4. Import result as grouped `fabric.Path` objects on canvas.
+
+### UI wiring in [`FabricEditor.tsx`](src/components/fabrixa/FabricEditor.tsx)
+
+| Tool | Location | Gate |
+|------|----------|------|
+| Clean Image | Edit tab + toolbar | `IMAGE_CLEAN` |
+| Seamless Extend | Tiling tab beside "Generate Pattern" | `SEAMLESS_EXTEND` |
+| Geometric Repeat presets | Tiling tab (extend existing) | `GEOMETRIC_REPEAT` |
+| Vectorize | Edit tab / toolbar overflow | `PATTERN_VECTORIZE` |
+| Color Separation | New "Separation" right-panel tab | `COLOR_SEPARATION` |
+
+Flow: process active `FabricImage` or full canvas → replace image → `emit()` → parent `designUrl` updates.
+
+Extend `window.__fabrixa` with `cleanImage()`, `seamlessExtend()`, `vectorize()`, `colorSeparate()` for FabrixaApp orchestration.
+
+### Phase 2 acceptance criteria
+
+- Seamless extend produces visually tileable 2×2 preview (edge delta < threshold).
+- Color separation outputs correct N plates; plates exportable as PNG.
+- Vectorize produces editable paths on canvas.
+- Clean image visibly reduces noise/artifacts without destroying pattern structure.
+- All gated actions show cost and block when balance insufficient.
+
+---
+
+## Phase 3 — Advanced Colorway Manager
+
+**Goal**: Professional multi-variant color management across garment parts.
+
+### State model
+
+Extend project-level state in [`FabrixaApp.tsx`](src/components/fabrixa/FabrixaApp.tsx) (not per-part only):
+
+```ts
+interface Colorway {
+  id: string;
+  name: string;
+  parts: Record<PartId, { color: string; textureDataUrl?: string; layerOverrides?: ... }>;
+  createdAt: string;
+}
+interface ProjectColorways {
+  activeColorwayId: string;
+  colorways: Colorway[];
+}
+```
+
+New lib: `src/lib/fabrixa/colorway/colorwayManager.ts`
+
+- `createColorwayFromCurrent(projectState)`
+- `applyColorway(id)` — swaps all part colors/textures atomically
+- `duplicateColorway`, `renameColorway`, `deleteColorway`
+- `recolorPattern(textureUrl, colorMap)` — hue remap using separation plates from Phase 2
+
+### UI: `ColorwayManagerPanel.tsx`
+
+Mount in:
+- **3D Preview sidebar** (primary) — below ColorPanel
+- **AI Studio** Smart Palette tab — "Save as colorway" action
+
+Features:
+- Thumbnail strip of colorway variants
+- Create / duplicate / rename / delete
+- Per-colorway diff view (swatch grid per part)
+- Export colorway pack (ZIP of PNGs per variant) — uses existing export helpers
+
+### Phase 3 acceptance criteria
+
+- Switching colorways restores full garment appearance (all parts).
+- New colorway captures current state; edits to one colorway don't corrupt others.
+- Smart Palette output can be saved directly into a colorway.
+
+---
+
+## Phase 4 — Lookbook (garment on model)
+
+**Goal**: AI-generated faceless front/back model shots wearing the exact designed garment with realistic drape and texture.
+
+### New panel: `LookbookPanel.tsx`
+
+Tab in AI Studio (5th tab) or dedicated sub-view.
+
+**Inputs**:
+- Active garment composite texture (from `textureDataUrl` + `layerCompositeDataUrl`)
+- Garment type metadata from [`garments.ts`](src/lib/fabrixa/garments.ts)
+- Model gender: Woman / Man
+- Views: Front + Back (two separate generations or paired request)
+
+**API**: `src/routes/api/ai/lookbook.ts`
+
+- `POST { textureImage, garmentType, gender, view: "front" | "back", priorFrontImage? }`
+- Sends texture as `inlineData` reference + `promptForLookbook()` system prompt
+- Model: `gemini-2.5-flash-image`
+- Back view can reference front image for consistency
+
+**System prompt requirements** (in `prompts.ts`):
+- Faceless (crop at neck or blur face)
+- Photorealistic studio lighting
+- Exact fabric texture from reference (no hallucinated pattern)
+- Natural draping folds matching garment type
+- Plain background; fashion lookbook quality
+
+### Algorithm assist (hybrid quality)
+
+Before AI call:
+1. Composite final garment texture at high res (existing `TextureCompositor` + `GarmentPreview` capture).
+2. Generate UV layout thumbnail as secondary reference for AI (from `uvWireframe.ts`).
+
+After AI response:
+- Optional light post-process (`imageClean.ts` mild pass) for export quality.
+
+### Wiring in [`FabrixaApp.tsx`](src/components/fabrixa/FabrixaApp.tsx)
+
+- `onLookbookResult(url, view)` → save to project gallery / download
+- Gate: `AI_LOOKBOOK_RENDER` (15 coins); counts against daily AI cap
+- Show front+back side-by-side in panel; download both
+
+### Phase 4 acceptance criteria
+
+- Front and back renders complete without API errors when key is set.
+- Texture from user's design is visibly present on garment.
+- Faceless constraint enforced in prompt; no identity features.
+- Demo fallback shows placeholder mannequin composite when API unavailable.
+
+---
+
+## Cross-cutting quality & testing
+
+| Area | Approach |
+|------|----------|
+| Error handling | All API routes return `{ error: string }`; UI shows toast, never hangs spinner |
+| Loading states | Per-panel `isGenerating` / `isProcessing` flags |
+| Type safety | Extend `TaskType`, `FeatureCostKey`, `GenerateOpts` together |
+| Build | `npm run build` after each phase |
+| Manual test matrix | Each feature: happy path, no coins, no API key (demo), cancel mid-flight |
+
+### Files touched per phase (summary)
+
+**Phase 1**: `AIStudioPanel.tsx`, new `panels/TextToDesignPanel.tsx`, `SketchToDesignPanel.tsx`, `SmartPalettePanel.tsx`, `prompts.ts`, `generate.ts`, `enhance-prompt.ts`, `smart-palette.ts`, `ai.ts`, `entitlements.ts`, `runGated.ts`, `spendFeature.ts`, `APP_DATA_0.json`, `APP_DATA_0.ts`, `FabrixaApp.tsx`
+
+**Phase 2**: `FabricEditor.tsx`, `imageProcessing/*`, `vectorize/tracePattern.ts`, `entitlements.ts` (already extended)
+
+**Phase 3**: `colorwayManager.ts`, `ColorwayManagerPanel.tsx`, `FabrixaApp.tsx`, `garments.ts` (optional types)
+
+**Phase 4**: `LookbookPanel.tsx`, `lookbook.ts`, `prompts.ts`, `GarmentPreview.tsx` (capture helper), `FabrixaApp.tsx`
+
+---
+
+## Dependency note
+
+Add `imagetracerjs` (or `potrace-wasm`) for vectorization in Phase 2. No other new runtime deps required; algorithms otherwise use Canvas 2D APIs.
+
+## Risk mitigations
+
+- **Multimodal fix first** — without it, sketch-to-design and lookbook will be half-working.
+- **Unify through `ai.ts`** — prevents AIStudioPanel bypassing demo/error handling.
+- **Phase gates** — do not start Phase 2 until Phase 1 acceptance criteria pass; same for 3 and 4.

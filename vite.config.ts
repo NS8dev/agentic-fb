@@ -27,7 +27,7 @@ export default defineConfig({
     tsconfigPaths(),
     tanstackStart({
       server: {
-        preset: "vercel",
+        preset: "cloudflare-module",
       },
     }),
     react(),

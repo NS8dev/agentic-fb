@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
+import netlify from "@netlify/vite-plugin-tanstack-start";
 
 export default defineConfig({
   resolve: {
@@ -26,6 +27,7 @@ export default defineConfig({
   plugins: [
     tsconfigPaths(),
     tanstackStart(),
+    netlify(),
     react(),
     tailwindcss(),
   ],

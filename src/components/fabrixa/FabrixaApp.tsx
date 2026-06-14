@@ -56,7 +56,7 @@ import { loadGarmentModel } from "@/lib/fabrixa/modelLoader";
 import { ThemeToggle } from "@/components/fabrixa/ThemeToggle";
 import { FabricEditor } from "@/components/fabrixa/FabricEditor";
 import { GarmentPreview } from "@/components/fabrixa/GarmentPreview";
-import { LassoOverlay } from "@/components/fabrixa/LassoSelector";
+import { LassoOverlay, resetSelectionRequest } from "@/components/fabrixa/LassoSelector";
 import { LayersPanel3D } from "@/components/fabrixa/LayersPanel3D";
 import { ColorPanel, ColorPickerBlock } from "@/components/fabrixa/ColorPanel";
 import { SettingsPanel, loadStoredPrefs } from "@/components/fabrixa/SettingsPanel";
@@ -240,6 +240,7 @@ export function FabrixaApp() {
   const [regionGradientId, setRegionGradientId] = useState("sunset");
   const [regionPreviewUrl, setRegionPreviewUrl] = useState<string | null>(null);
   const [neckOpen, setNeckOpen] = useState(false);
+  const [showcaseMode, setShowcaseMode] = useState(false);
   const [uvWireframes, setUvWireframes] = useState<Record<string, string>>({});
   const handleUvWireframeGenerated = useCallback((key: string, url: string) => {
     setUvWireframes((prev) => ({ ...prev, [key]: url }));
@@ -376,6 +377,12 @@ export function FabrixaApp() {
   const updateActivePart = (patch: Partial<PartState>) =>
     setPartStates((prev) => ({ ...prev, [activePart]: { ...prev[activePart], ...patch } }));
 
+  const getActiveLayerMask = (): string | null => {
+    const state = partStates[activePart];
+    if (!state || !activeLayerId) return null;
+    return state.layers?.find((l) => l.id === activeLayerId)?.maskUrl ?? null;
+  };
+
   const api = () => (window as unknown as { __fabrixa?: FabrixaApi }).__fabrixa;
 
   const activeLabel =
@@ -431,7 +438,7 @@ export function FabrixaApp() {
     const state = partStates[activePart];
     if (!state) return;
 
-    const hasMask = !!state.selectionMaskDataUrl;
+    const hasMask = !!state.selectionMaskDataUrl || !!getActiveLayerMask();
     const feature = activeLayerId || hasMask ? "MASKED_APPLY" : "APPLY_TO_MODEL";
 
     if (activeLayerId) {
@@ -564,24 +571,40 @@ export function FabrixaApp() {
     }));
   };
 
-  const handleLassoMask = (key: string, dataUrl: string, triCount: number) => {
+  const handleLassoMask = async (key: string, dataUrl: string, triCount: number) => {
     setLassoActive(false);
     if (!dataUrl || triCount === 0) {
       toast.error("Nothing selected — try rotating the model or drawing a larger region.");
       return;
     }
-    setPartStates((prev) => ({ ...prev, [key]: { ...prev[key], selectionMaskDataUrl: dataUrl } }));
-    toast.success(
-      `Selected ${triCount} surface(s) on ${activeLabel}. Create a layer or edit in 2D.`,
-    );
+    const state = partStates[key];
+    if (!state) return;
+
+    const id = newLayerId();
+    const EMPTY_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    const newLayer: DesignLayer = {
+      id,
+      name: `Layer ${(state.layers?.length || 0) + 1}`,
+      maskUrl: dataUrl,
+      contentDataUrl: EMPTY_PNG,
+      visible: true,
+      opacity: 1,
+    };
+
+    const nextLayers = [...(state.layers || []), newLayer];
+    await applyLayersToPart(key, nextLayers);
+    setActiveLayerId(id);
+    resetSelectionRequest();
+    toast.success(`Created layer with ${triCount} surface(s) selected on ${activeLabel}.`);
   };
 
   const clearLassoMask = () => {
-    setPartStates((prev) => ({
-      ...prev,
-      [activePart]: { ...prev[activePart], selectionMaskDataUrl: null },
-    }));
-    toast("Selection cleared");
+    const state = partStates[activePart];
+    if (!state || !activeLayerId) return;
+    const nextLayers = state.layers.filter((l) => l.id !== activeLayerId);
+    void applyLayersToPart(activePart, nextLayers);
+    setActiveLayerId(null);
+    toast("Selection layer removed");
   };
 
   const createLayerFromSelection = (openEditor = false) => {
@@ -603,7 +626,16 @@ export function FabrixaApp() {
     toast.success(`Created layer on ${activeLabel}`);
   };
 
-  const handleEditSelection = () => createLayerFromSelection(true);
+  const handleEditSelection = () => {
+    if (activeLayerId) {
+      const layer = partStates[activePart]?.layers?.find((l) => l.id === activeLayerId);
+      if (layer) {
+        setDesignUrl(layer.contentDataUrl || null);
+        setDesignJson(layer.contentJson || null);
+        void changeView("design");
+      }
+    }
+  };
 
   const handleLayersChange = async (layers: DesignLayer[]) => {
     await applyLayersToPart(activePart, layers);
@@ -894,7 +926,8 @@ export function FabrixaApp() {
 
   const composeSelectionFillLayer = async (): Promise<string | null> => {
     const state = partStates[activePart];
-    if (!state?.selectionMaskDataUrl) return null;
+    const maskUrl = getActiveLayerMask();
+    if (!state || !maskUrl) return null;
     const W = 1024,
       H = 1024;
     const fill = document.createElement("canvas");
@@ -920,7 +953,7 @@ export function FabrixaApp() {
         fctx.fillRect(0, 0, W, H);
       }
     }
-    const mask = await loadImg(state.selectionMaskDataUrl);
+    const mask = await loadImg(maskUrl);
     const out = document.createElement("canvas");
     out.width = W;
     out.height = H;
@@ -933,7 +966,8 @@ export function FabrixaApp() {
 
   const composeSelectionFillPreview = async (): Promise<string | null> => {
     const state = partStates[activePart];
-    if (!state?.selectionMaskDataUrl) return null;
+    const maskUrl = getActiveLayerMask();
+    if (!state || !maskUrl) return null;
     const layerContent = await composeSelectionFillLayer();
     if (!layerContent) return null;
     const W = 1024,
@@ -956,7 +990,8 @@ export function FabrixaApp() {
 
   const applyToSelection = async () => {
     const state = partStates[activePart];
-    if (!state?.selectionMaskDataUrl) {
+    const maskUrl = getActiveLayerMask();
+    if (!state || !maskUrl) {
       toast.error("Lasso a region on the 3D model first");
       return;
     }
@@ -964,33 +999,22 @@ export function FabrixaApp() {
       const layerContent = await composeSelectionFillLayer();
       if (!layerContent) return;
       const nextLayers = [...(state.layers || [])];
-      const id =
-        activeLayerId && nextLayers.find((l) => l.id === activeLayerId && !l.locked)
-          ? activeLayerId
-          : newLayerId();
-      const idx = nextLayers.findIndex((l) => l.id === id);
-      const layerPatch: DesignLayer = {
-        id,
-        name: idx >= 0 ? nextLayers[idx].name : `Selection ${nextLayers.length + 1}`,
-        maskUrl: state.selectionMaskDataUrl!,
-        contentDataUrl: layerContent,
-        visible: true,
-        opacity: 1,
-        locked: idx >= 0 ? nextLayers[idx].locked : false,
-        linkedGroupId: idx >= 0 ? nextLayers[idx].linkedGroupId : null,
-      };
-      if (idx >= 0) nextLayers[idx] = { ...nextLayers[idx], ...layerPatch };
-      else nextLayers.push(layerPatch);
-      await applyLayersToPart(activePart, nextLayers, { selectionMaskDataUrl: null });
-      setActiveLayerId(null);
-      toast.success(`Applied fill to selected layer on ${activeLabel}`);
+      const idx = nextLayers.findIndex((l) => l.id === activeLayerId);
+      if (idx >= 0) {
+        nextLayers[idx] = {
+          ...nextLayers[idx],
+          contentDataUrl: layerContent,
+        };
+        await applyLayersToPart(activePart, nextLayers);
+        toast.success(`Applied fill to active layer on ${activeLabel}`);
+      }
     });
   };
 
   useEffect(() => {
     let cancelled = false;
-    const state = partStates[activePart];
-    if (!state?.selectionMaskDataUrl) {
+    const maskUrl = getActiveLayerMask();
+    if (!maskUrl) {
       setRegionPreviewUrl(null);
       return;
     }
@@ -1007,11 +1031,12 @@ export function FabrixaApp() {
     };
   }, [
     activePart,
+    activeLayerId,
     regionFillKind,
     regionColor,
     regionPatternId,
     regionGradientId,
-    partStates[activePart]?.selectionMaskDataUrl,
+    partStates[activePart]?.layers,
     partStates[activePart]?.textureDataUrl,
     partStates[activePart]?.color,
   ]);
@@ -1095,7 +1120,7 @@ export function FabrixaApp() {
 
               {view === "design" &&
                 (() => {
-                  const hasMask = !!partStates[activePart]?.selectionMaskDataUrl;
+                  const hasMask = !!getActiveLayerMask();
                   return (
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -1384,6 +1409,12 @@ export function FabrixaApp() {
               <FabricEditor
                 key={`${activePart}-${activeLayerId ?? "base"}`}
                 autosaveKey={`${activePart}-${activeLayerId ?? "base"}`}
+                activeLayer={
+                  activeLayerId
+                    ? partStates[activePart]?.layers?.find((l) => l.id === activeLayerId)
+                    : null
+                }
+                bgTextureUrl={partStates[activePart]?.originalTextureUrl || partStates[activePart]?.textureDataUrl}
                 onChange={(url, json) => {
                   setDesignUrl(url);
                   setDesignJson(json);
@@ -1526,7 +1557,20 @@ export function FabrixaApp() {
                         {lassoActive && lassoMode === "polygon" ? "Polygon…" : "Polygon"}
                       </Button>
 
-                      {activeState.selectionMaskDataUrl && (
+                      <Button
+                        size="sm"
+                        variant={lassoActive && lassoMode === "wand" ? "default" : "outline"}
+                        onClick={() => {
+                          setLassoMode("wand");
+                          setLassoActive((v) => (lassoMode === "wand" ? !v : true));
+                        }}
+                        className="h-7 gap-1 text-xs bg-background/50 border-white/10"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        {lassoActive && lassoMode === "wand" ? "Wand…" : "Magic Wand"}
+                      </Button>
+
+                      {getActiveLayerMask() && (
                         <div className="flex items-center gap-1 animate-in fade-in zoom-in ml-2">
                           <Button
                             size="sm"
@@ -1568,6 +1612,12 @@ export function FabrixaApp() {
                       </div>
                       <Sep />
                       <Label className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Switch checked={showcaseMode} onCheckedChange={setShowcaseMode} />
+                        <Sparkles className="h-3 w-3 text-primary" />
+                        Showcase Mode
+                      </Label>
+                      <Sep />
+                      <Label className="flex items-center gap-2 text-xs text-muted-foreground">
                         <Switch checked={autoRotate} onCheckedChange={setAutoRotate} />
                         <RotateCw className="h-3 w-3" />
                         Spin
@@ -1598,6 +1648,7 @@ export function FabrixaApp() {
                       lassoMode={lassoMode}
                       onLassoMask={handleLassoMask}
                       onUvWireframeGenerated={handleUvWireframeGenerated}
+                      showcaseMode={showcaseMode}
                     />
                     <LassoOverlay
                       enabled={lassoActive}
@@ -1610,7 +1661,7 @@ export function FabrixaApp() {
                         ? "Drag to lasso a region · OrbitControls paused"
                         : "Click a part to edit · Drag · Scroll · Right-drag pans"}
                     </div>
-                    {activeState.selectionMaskDataUrl && !lassoActive && (
+                    {getActiveLayerMask() && !lassoActive && (
                       <div className="pointer-events-none absolute bottom-2 right-2 rounded-md bg-primary/90 px-2 py-1 text-[10px] font-medium text-primary-foreground backdrop-blur">
                         Selection active on {activeLabel} — Apply restricts to this region
                       </div>
@@ -1672,6 +1723,9 @@ export function FabrixaApp() {
                     onDuplicate={onDuplicateColorway}
                     onDelete={onDeleteColorway}
                     onRename={onRenameColorway}
+                    activePartKey={activePart}
+                    activePartState={partStates[activePart]}
+                    updateActivePart={updateActivePart}
                   />
 
                   {/* Per-part controls */}
@@ -1712,7 +1766,7 @@ export function FabrixaApp() {
                         layers={activeState.layers ?? []}
                         activeLayerId={activeLayerId}
                         activePartKey={activePart}
-                        selectionMaskDataUrl={activeState.selectionMaskDataUrl ?? null}
+                        selectionMaskDataUrl={getActiveLayerMask()}
                         partLabel={activeLabel}
                         allParts={garment.parts.map((p) => {
                           const k = partKey(garment.id, p.id);
@@ -1861,7 +1915,7 @@ export function FabrixaApp() {
                         Apply current design here
                         <CoinCostBadge
                           feature={
-                            activeState.selectionMaskDataUrl ? "MASKED_APPLY" : "APPLY_TO_MODEL"
+                            getActiveLayerMask() ? "MASKED_APPLY" : "APPLY_TO_MODEL"
                           }
                         />
                       </Button>
@@ -1882,9 +1936,9 @@ export function FabrixaApp() {
                             Selected region
                           </Label>
                           <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] ${activeState.selectionMaskDataUrl ? "bg-primary text-primary-foreground shadow" : "bg-muted/50 text-muted-foreground"}`}
+                            className={`rounded-full px-2 py-0.5 text-[10px] ${getActiveLayerMask() ? "bg-primary text-primary-foreground shadow" : "bg-muted/50 text-muted-foreground"}`}
                           >
-                            {activeState.selectionMaskDataUrl ? "Active" : "None"}
+                            {getActiveLayerMask() ? "Active" : "None"}
                           </span>
                         </div>
                         <p className="text-[10px] text-muted-foreground">
@@ -1956,14 +2010,14 @@ export function FabrixaApp() {
                         <Button
                           size="sm"
                           className="w-full shadow-md"
-                          disabled={!activeState.selectionMaskDataUrl}
+                          disabled={!getActiveLayerMask()}
                           onClick={() => void applyToSelection()}
                         >
                           <CheckCircle2 className="mr-1.5 h-4 w-4" />
                           Apply to selection
                           <CoinCostBadge feature="MASKED_APPLY" />
                         </Button>
-                        {activeState.selectionMaskDataUrl && (
+                        {getActiveLayerMask() && (
                           <div className="mt-2">
                             <div className="mb-1 text-[10px] uppercase tracking-wider text-muted-foreground">
                               Preview

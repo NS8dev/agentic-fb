@@ -20,7 +20,7 @@ function createAlphaMask(mask: HTMLImageElement, width: number, height: number):
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
-  const ctx = canvas.getContext("2d")!;
+  const ctx = canvas.getContext("2d", { colorSpace: "srgb" as PredefinedColorSpace })!;
   ctx.drawImage(mask, 0, 0, width, height);
   const img = ctx.getImageData(0, 0, width, height);
   for (let i = 0; i < img.data.length; i += 4) {
@@ -56,7 +56,7 @@ export async function compositeLayers(
   const out = document.createElement("canvas");
   out.width = width;
   out.height = height;
-  const octx = out.getContext("2d")!;
+  const octx = out.getContext("2d", { colorSpace: "srgb" as PredefinedColorSpace })!;
 
   let hasContent = false;
 
@@ -76,27 +76,48 @@ export async function compositeLayers(
     if (!layer.visible || !layer.contentDataUrl) continue;
 
     try {
+      octx.globalCompositeOperation = "source-over";
       const contentImg = await loadImg(layer.contentDataUrl);
 
       octx.save();
       octx.globalAlpha = layer.opacity !== undefined ? layer.opacity : 1;
 
       if (layer.maskUrl) {
-        // If layer has a mask, we draw the content into a temp canvas, apply the mask, then draw to output
+        // Layer-specific masking: draw content to an offscreen canvas, apply mask using 'destination-in', then compose to base
         const maskImg = await loadImg(layer.maskUrl);
-        const tmp = document.createElement("canvas");
-        tmp.width = width;
-        tmp.height = height;
-        const tctx = tmp.getContext("2d")!;
+        const offscreenCanvas = document.createElement("canvas");
+        offscreenCanvas.width = width;
+        offscreenCanvas.height = height;
+        const offscreenCtx = offscreenCanvas.getContext("2d", { colorSpace: "srgb" as PredefinedColorSpace })!;
 
-        tctx.drawImage(contentImg, 0, 0, width, height);
-        tctx.globalCompositeOperation = "destination-in";
-        tctx.drawImage(createAlphaMask(maskImg, width, height), 0, 0);
+        offscreenCtx.drawImage(contentImg, 0, 0, width, height);
+        offscreenCtx.globalCompositeOperation = "destination-in";
 
-        octx.drawImage(tmp, 0, 0, width, height);
+        const alphaMaskCanvas = createAlphaMask(maskImg, width, height);
+        let maskBitmap: ImageBitmap | null = null;
+        try {
+          maskBitmap = await createImageBitmap(alphaMaskCanvas);
+        } catch (bitmapError) {
+          console.warn("Failed to create ImageBitmap, falling back to canvas element", bitmapError);
+        }
+
+        offscreenCtx.drawImage(maskBitmap || alphaMaskCanvas, 0, 0);
+        
+        if (maskBitmap) {
+          maskBitmap.close();
+        }
+
+        // Reset offscreen context composite operation
+        offscreenCtx.globalCompositeOperation = "source-over";
+
+        // Reset main context composite operation before drawing offscreen canvas
+        octx.globalCompositeOperation = "source-over";
+        octx.drawImage(offscreenCanvas, 0, 0, width, height);
         hasContent = true;
       } else {
-        // No mask, just draw directly over
+        // Reset main context composite operation
+        octx.globalCompositeOperation = "source-over";
+        // Draw content directly when no mask is present
         octx.drawImage(contentImg, 0, 0, width, height);
         hasContent = true;
       }

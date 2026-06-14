@@ -73,7 +73,7 @@ varying vec3 vFx_worldNormal;`,
 #else
   vFx_worldPos = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;
 #endif
-vFx_worldNormal = normalize( normalMatrix * objectNormal );`,
+vFx_worldNormal = normalize( ( modelMatrix * vec4( objectNormal, 0.0 ) ).xyz );`,
       );
 
     shader.fragmentShader = shader.fragmentShader
@@ -121,6 +121,77 @@ vec4 fx_triplanar( sampler2D tex, vec3 worldPos, vec3 worldNormal, float scale )
   w /= max( w.x + w.y + w.z, 0.0001 );
   return cX * w.x + cY * w.y + cZ * w.z;
 }`,
+      )
+      .replace(
+        "#include <normalmap_pars_fragment>",
+        `#include <normalmap_pars_fragment>
+#ifdef USE_NORMALMAP
+vec3 fx_triplanar_normal( sampler2D normalMapTex, vec3 worldPos, vec3 worldNormal, float scale ) {
+  vec3 n = normalize( worldNormal );
+  vec3 p = worldPos / max(scale, 0.0001);
+  
+  float signX = n.x >= 0.0 ? 1.0 : -1.0;
+  float signY = n.y >= 0.0 ? 1.0 : -1.0;
+  float signZ = n.z >= 0.0 ? -1.0 : 1.0;
+
+  vec2 rawUvX = vec2( p.z * signX, p.y );
+  vec2 rawUvY = vec2( p.x, p.z * signY );
+  vec2 rawUvZ = vec2( p.x * signZ, p.y );
+
+  vec2 uvX = fx_rotateUV( rawUvX + uTextureOffset, uTextureRotation );
+  vec2 uvY = fx_rotateUV( rawUvY + uTextureOffset, uTextureRotation );
+  vec2 uvZ = fx_rotateUV( rawUvZ + uTextureOffset, uTextureRotation );
+
+  vec3 tX = texture2D( normalMapTex, uvX ).xyz * 2.0 - 1.0;
+  vec3 tY = texture2D( normalMapTex, uvY ).xyz * 2.0 - 1.0;
+  vec3 tZ = texture2D( normalMapTex, uvZ ).xyz * 2.0 - 1.0;
+
+  tX.xy *= normalScale;
+  tY.xy *= normalScale;
+  tZ.xy *= normalScale;
+
+  tX.z = sqrt( max( 0.0, 1.0 - dot( tX.xy, tX.xy ) ) );
+  tY.z = sqrt( max( 0.0, 1.0 - dot( tY.xy, tY.xy ) ) );
+  tZ.z = sqrt( max( 0.0, 1.0 - dot( tZ.xy, tZ.xy ) ) );
+
+  vec3 nX = vec3( tX.z * signX, tX.y, tX.x * signX );
+  vec3 nY = vec3( tY.x, tY.z * signY, tY.y * signY );
+  vec3 nZ = vec3( tZ.x * signZ, tZ.y, tZ.z * signZ );
+
+  vec3 w = pow( abs(n), vec3(uTriplanarBlend * 1.5) );
+  w /= max( w.x + w.y + w.z, 0.0001 );
+
+  return normalize( nX * w.x + nY * w.y + nZ * w.z );
+}
+#endif`
+      )
+      .replace(
+        "#include <normal_fragment_maps>",
+        `#if defined( USE_NORMALMAP_TANGENTSPACE )
+	vec3 mapN;
+	if (uUseWorldTiling) {
+		vec3 normalWorld = fx_triplanar_normal( normalMap, vFx_worldPos, vFx_worldNormal, uWorldTileScale );
+		normal = normalize( ( viewMatrix * vec4( normalWorld, 0.0 ) ).xyz );
+	} else {
+		mapN = texture2D( normalMap, vNormalMapUv ).xyz * 2.0 - 1.0;
+		#if defined( USE_PACKED_NORMALMAP )
+			mapN = vec3( mapN.xy, sqrt( saturate( 1.0 - dot( mapN.xy, mapN.xy ) ) ) );
+		#endif
+		mapN.xy *= normalScale;
+		normal = normalize( tbn * mapN );
+	}
+#elif defined( USE_NORMALMAP_OBJECTSPACE )
+	normal = texture2D( normalMap, vNormalMapUv ).xyz * 2.0 - 1.0;
+	#ifdef FLIP_SIDED
+		normal = - normal;
+	#endif
+	#ifdef DOUBLE_SIDED
+		normal = normal * faceDirection;
+	#endif
+	normal = normalize( normalMatrix * normal );
+#elif defined( USE_BUMPMAP )
+	normal = perturbNormalArb( - vViewPosition, normal, dHdxy_fwd(), faceDirection );
+#endif`
       )
       .replace(
         "#include <map_fragment>",

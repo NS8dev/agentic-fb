@@ -140,7 +140,7 @@ export async function loadGarmentModel(path: string): Promise<LoadResult> {
           for (const mm of mats) {
             if (!mm) continue;
             (mm as THREE.Material).side = THREE.DoubleSide;
-            const std = mm as THREE.MeshStandardMaterial;
+            const std = mm as THREE.MeshPhysicalMaterial;
             // Make sure textures look smooth (anisotropy + mipmaps).
             for (const t of [
               std.map,
@@ -208,9 +208,14 @@ function cloneScene(scene: THREE.Group): THREE.Group {
     if ((obj as THREE.Mesh).isMesh) {
       const mesh = obj as THREE.Mesh;
       if (Array.isArray(mesh.material)) {
-        mesh.material = mesh.material.map((m) => m.clone());
+        mesh.material = mesh.material.map((m) => {
+          const cMat = m.clone();
+          cMat.side = THREE.DoubleSide;
+          return cMat;
+        });
       } else if (mesh.material) {
         mesh.material = (mesh.material as THREE.Material).clone();
+        mesh.material.side = THREE.DoubleSide;
       }
     }
   });

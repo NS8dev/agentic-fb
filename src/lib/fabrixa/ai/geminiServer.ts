@@ -106,19 +106,19 @@ export async function generateGeminiImage(opts: GeminiImageOpts): Promise<string
   }[];
   const parts: unknown[] = [{ text: opts.prompt }];
   for (const ref of refs) {
-    parts.push({ inline_data: { mime_type: ref.mimeType, data: ref.data } });
+    parts.push({ inlineData: { mimeType: ref.mimeType, data: ref.data } });
   }
 
-  // Multimodal generateContent (preferred when reference images present)
-  if (refs.length > 0) {
-    const { url, headers } = geminiAuth(
-      key,
-      opts.cfg.baseUrl ?? "https://generativelanguage.googleapis.com/v1beta",
-      `/models/${opts.model}:generateContent`,
-    );
-    const res = await fetch(url, {
+  // Primary path: generateContent (handles both text-only and multimodal)
+  const { url: gcUrl, headers: gcHeaders } = geminiAuth(
+    key,
+    opts.cfg.baseUrl ?? "https://generativelanguage.googleapis.com/v1beta",
+    `/models/${opts.model}:generateContent`,
+  );
+  try {
+    const res = await fetch(gcUrl, {
       method: "POST",
-      headers,
+      headers: gcHeaders,
       body: JSON.stringify({
         contents: [{ role: "user", parts }],
         generationConfig: { responseModalities: ["TEXT", "IMAGE"] },
@@ -128,10 +128,16 @@ export async function generateGeminiImage(opts: GeminiImageOpts): Promise<string
       const json = await res.json();
       const dataUrl = imageDataUrlFromGenerateContent(json);
       if (dataUrl) return dataUrl;
+    } else if (refs.length > 0) {
+      // If multimodal failed but we have images, don't fall back to text-only endpoint
+      const t = await res.text().catch(() => "");
+      throw new Error(`Gemini generateContent error ${res.status}: ${t.slice(0, 400)}`);
     }
+  } catch (e) {
+    if (refs.length > 0) throw e; // Reraise if we needed multimodal
   }
 
-  // Fallback: images:generate endpoint
+  // Fallback: images:generate endpoint (legacy/Imagen)
   const base = (opts.cfg.baseUrl ?? "https://generativelanguage.googleapis.com/v1beta2").replace(
     /\/$/,
     "",
@@ -172,7 +178,7 @@ export async function generateGeminiText(opts: GeminiTextOpts): Promise<string> 
   const parts: unknown[] = [{ text: opts.prompt }];
   if (opts.referenceImage) {
     const ref = parseDataUrl(opts.referenceImage);
-    if (ref) parts.push({ inline_data: { mime_type: ref.mimeType, data: ref.data } });
+    if (ref) parts.push({ inlineData: { mimeType: ref.mimeType, data: ref.data } });
   }
 
   const { url, headers } = geminiAuth(

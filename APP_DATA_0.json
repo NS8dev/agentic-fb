@@ -39,5 +39,27 @@
     "COLOR_SEPARATION": 4,
     "SEAMLESS_EXTEND": 3,
     "GEOMETRIC_REPEAT": 2
+  },
+  "dailyCaps": {
+    "ai": {
+      "creator": 20,
+      "studio": 100,
+      "enterprise": 500
+    },
+    "showroom": {
+      "creator": 5,
+      "studio": 25,
+      "enterprise": 200
+    }
+  },
+  "tierDailyCoins": {
+    "creator": 100,
+    "studio": 500,
+    "enterprise": 2500
+  },
+  "tiers": {
+    "creator_1m": { "label": "Creator Monthly", "priceInr": 1200, "durationDays": 30 },
+    "studio_1m": { "label": "Studio Monthly", "priceInr": 4500, "durationDays": 30 },
+    "enterprise_1m": { "label": "Enterprise Monthly", "priceInr": 15000, "durationDays": 30 }
   }
 }

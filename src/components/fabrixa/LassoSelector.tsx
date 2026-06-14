@@ -16,7 +16,7 @@ import { useThree } from "@react-three/fiber";
 import * as THREE from "three";
 
 type Pt = { x: number; y: number };
-export type LassoMode = "freehand" | "polygon" | "brush";
+export type LassoMode = "freehand" | "polygon" | "brush" | "wand";
 
 interface LassoRequest {
   id: number;
@@ -55,6 +55,11 @@ function emitRequest(
   notify();
 }
 
+export function resetSelectionRequest() {
+  store.request = null;
+  notify();
+}
+
 /* ============================================================
  * DOM overlay — sits over the WebGL canvas.
  * ============================================================ */
@@ -80,8 +85,13 @@ export function LassoOverlay({
 
   const onDown = (e: React.PointerEvent) => {
     e.preventDefault();
+    if ((e.target as HTMLElement).closest("button")) return;
     const r = getRect();
     const p = { x: e.clientX - r.left, y: e.clientY - r.top };
+    if (mode === "wand") {
+      emitRequest([p], { width: r.width, height: r.height }, mode, brushSize);
+      return;
+    }
     if (mode === "polygon") {
       if (e.button === 2) {
         setPoints([]);
@@ -192,7 +202,9 @@ export function LassoOverlay({
           ? "Click to add points · Double-click or Close to finish · Scroll to rotate model"
           : mode === "brush"
             ? `Drag to paint selection (brush ${brushSize}px)`
-            : "Drag to freehand-lasso a region on the model"}
+            : mode === "wand"
+              ? "Click on the 3D model to select matching surface faces"
+              : "Drag to freehand-lasso a region on the model"}
         {mode === "polygon" && points.length >= 3 && (
           <button
             onClick={(e) => {
@@ -278,11 +290,18 @@ export function LassoComputer({ activePart, onMask, maskSize = 1024 }: ComputerP
   const ndc = useRef(new THREE.Vector2()).current;
 
   useEffect(() => {
+    resetSelectionRequest();
+  }, []);
+
+  useEffect(() => {
     if (!request || request.id === handledRef.current) return;
     handledRef.current = request.id;
 
     const { points, rect, mode, brushSize } = request;
     if (points.length < 1) return;
+
+    const W = rect.width;
+    const H = rect.height;
 
     const meshes: THREE.Mesh[] = [];
     scene.traverse((o) => {
@@ -297,8 +316,189 @@ export function LassoComputer({ activePart, onMask, maskSize = 1024 }: ComputerP
       return;
     }
 
-    const W = rect.width;
-    const H = rect.height;
+    if (mode === "wand") {
+      const p = points[0];
+      ndc.x = (p.x / W) * 2 - 1;
+      ndc.y = -(p.y / H) * 2 + 1;
+      raycaster.setFromCamera(ndc, camera);
+      const hits = raycaster.intersectObjects(meshes, false);
+      if (!hits.length) {
+        onMask(activePart, "", 0);
+        return;
+      }
+
+      const hit = hits[0];
+      const mesh = hit.object as THREE.Mesh;
+      const faceIndex = hit.faceIndex;
+      if (faceIndex === undefined) {
+        onMask(activePart, "", 0);
+        return;
+      }
+
+      const geom = mesh.geometry as THREE.BufferGeometry;
+      const index = geom.index;
+      const pos = geom.attributes.position as THREE.BufferAttribute;
+      const uv = geom.attributes.uv as THREE.BufferAttribute;
+      if (!index || !pos || !uv) {
+        onMask(activePart, "", 0);
+        return;
+      }
+
+      const indices = index.array;
+      const faceCount = indices.length / 3;
+
+      // Pre-allocated Vector3s for fast local face normal calculations
+      const v0 = new THREE.Vector3();
+      const v1 = new THREE.Vector3();
+      const v2 = new THREE.Vector3();
+      const edge1 = new THREE.Vector3();
+      const edge2 = new THREE.Vector3();
+
+      const getFaceNormal = (f: number, outNormal: THREE.Vector3) => {
+        const idx0 = indices[3 * f];
+        const idx1 = indices[3 * f + 1];
+        const idx2 = indices[3 * f + 2];
+
+        v0.fromBufferAttribute(pos, idx0);
+        v1.fromBufferAttribute(pos, idx1);
+        v2.fromBufferAttribute(pos, idx2);
+
+        edge1.subVectors(v1, v0);
+        edge2.subVectors(v2, v0);
+        outNormal.crossVectors(edge1, edge2).normalize();
+      };
+
+      const targetNormal = new THREE.Vector3();
+      getFaceNormal(faceIndex, targetNormal);
+
+      // Build face adjacency index (faces sharing exactly 2 vertices / an edge)
+      const edgeMap = new Map<string, number[]>();
+      const getEdgeKey = (vA: number, vB: number) => {
+        return vA < vB ? `${vA},${vB}` : `${vB},${vA}`;
+      };
+
+      for (let j = 0; j < faceCount; j++) {
+        const idx0 = indices[3 * j];
+        const idx1 = indices[3 * j + 1];
+        const idx2 = indices[3 * j + 2];
+
+        const e0 = getEdgeKey(idx0, idx1);
+        const e1 = getEdgeKey(idx1, idx2);
+        const e2 = getEdgeKey(idx2, idx0);
+
+        for (const e of [e0, e1, e2]) {
+          let arr = edgeMap.get(e);
+          if (!arr) {
+            arr = [];
+            edgeMap.set(e, arr);
+          }
+          arr.push(j);
+        }
+      }
+
+      // Visited array and queue for BFS
+      const visited = new Uint8Array(faceCount);
+      visited[faceIndex] = 1;
+
+      const selectedFaces: number[] = [faceIndex];
+      const queue: number[] = [faceIndex];
+      let head = 0;
+
+      const currentNormal = new THREE.Vector3();
+
+      while (head < queue.length) {
+        const j = queue[head++];
+        const idx0 = indices[3 * j];
+        const idx1 = indices[3 * j + 1];
+        const idx2 = indices[3 * j + 2];
+
+        const e0 = getEdgeKey(idx0, idx1);
+        const e1 = getEdgeKey(idx1, idx2);
+        const e2 = getEdgeKey(idx2, idx0);
+
+        for (const e of [e0, e1, e2]) {
+          const neighbors = edgeMap.get(e);
+          if (!neighbors) continue;
+          for (const n of neighbors) {
+            if (visited[n] === 0) {
+              visited[n] = 1;
+              getFaceNormal(n, currentNormal);
+              if (currentNormal.dot(targetNormal) > 0.85) {
+                queue.push(n);
+                selectedFaces.push(n);
+              }
+            }
+          }
+        }
+      }
+
+      const mc = document.createElement("canvas");
+      mc.width = maskSize;
+      mc.height = maskSize;
+      const mctx = mc.getContext("2d")!;
+      mctx.clearRect(0, 0, maskSize, maskSize);
+      mctx.fillStyle = "rgba(255,255,255,1)";
+
+      const finishRasterization = () => {
+        const out = document.createElement("canvas");
+        out.width = maskSize;
+        out.height = maskSize;
+        const octx = out.getContext("2d")!;
+        octx.clearRect(0, 0, maskSize, maskSize);
+        octx.filter = "blur(1px)";
+        octx.drawImage(mc, 0, 0);
+        onMask(activePart, out.toDataURL("image/png"), selectedFaces.length);
+      };
+
+      // Perform chunked rasterization in requestAnimationFrame blocks if triangle count > 5000
+      if (selectedFaces.length > 5000) {
+        let currentIndex = 0;
+        const chunkSize = 1000;
+        const rasterizeChunk = () => {
+          const limit = Math.min(currentIndex + chunkSize, selectedFaces.length);
+          for (let i = currentIndex; i < limit; i++) {
+            const f = selectedFaces[i];
+            const a = indices[3 * f];
+            const b = indices[3 * f + 1];
+            const c = indices[3 * f + 2];
+
+            const u0x = uv.getX(a);
+            const u0y = uv.getY(a);
+            const u1x = uv.getX(b);
+            const u1y = uv.getY(b);
+            const u2x = uv.getX(c);
+            const u2y = uv.getY(c);
+
+            rasterizeUvTriangle(mctx, u0x, u0y, u1x, u1y, u2x, u2y, maskSize);
+          }
+          currentIndex = limit;
+          if (currentIndex < selectedFaces.length) {
+            requestAnimationFrame(rasterizeChunk);
+          } else {
+            finishRasterization();
+          }
+        };
+        requestAnimationFrame(rasterizeChunk);
+      } else {
+        // Synchronous rasterization for smaller sets
+        for (const f of selectedFaces) {
+          const a = indices[3 * f];
+          const b = indices[3 * f + 1];
+          const c = indices[3 * f + 2];
+
+          const u0x = uv.getX(a);
+          const u0y = uv.getY(a);
+          const u1x = uv.getX(b);
+          const u1y = uv.getY(b);
+          const u2x = uv.getX(c);
+          const u2y = uv.getY(c);
+
+          rasterizeUvTriangle(mctx, u0x, u0y, u1x, u1y, u2x, u2y, maskSize);
+        }
+        finishRasterization();
+      }
+      return;
+    }
 
     let minX = Infinity,
       minY = Infinity,

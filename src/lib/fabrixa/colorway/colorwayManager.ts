@@ -5,6 +5,8 @@ export interface ColorwayPartSnapshot {
   color: string;
   textureDataUrl?: string | null;
   layerCompositeDataUrl?: string | null;
+  originalTextureUrl?: string | null;
+  derivedPalette?: string[] | null;
 }
 
 export interface Colorway {
@@ -36,6 +38,8 @@ export function createColorwayFromCurrent(
       color: s.color,
       textureDataUrl: s.textureDataUrl,
       layerCompositeDataUrl: s.layerCompositeDataUrl,
+      originalTextureUrl: s.originalTextureUrl,
+      derivedPalette: s.derivedPalette,
     };
   }
   return {
@@ -61,6 +65,8 @@ export function applyColorwayToStates(
       ...(snap.layerCompositeDataUrl !== undefined
         ? { layerCompositeDataUrl: snap.layerCompositeDataUrl }
         : {}),
+      originalTextureUrl: snap.originalTextureUrl ?? null,
+      derivedPalette: snap.derivedPalette ?? null,
     };
   }
   return next;

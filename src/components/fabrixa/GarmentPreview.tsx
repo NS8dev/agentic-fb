@@ -20,6 +20,7 @@ import {
 } from "@/lib/fabrixa/worldTiling";
 import { LassoComputer } from "@/components/fabrixa/LassoSelector";
 import { generateUvWireframe } from "@/lib/fabrixa/uvWireframe";
+import { TEXTILE_PRESETS, getNormalMap } from "@/lib/fabrixa/materials";
 
 interface Props {
   typeId: GarmentTypeId;
@@ -30,9 +31,10 @@ interface Props {
   showMannequin: boolean;
   onSelectPart: (partKey: string) => void;
   lassoActive?: boolean;
-  lassoMode?: "freehand" | "polygon" | "brush";
+  lassoMode?: "freehand" | "polygon" | "brush" | "wand";
   onLassoMask?: (partKey: string, dataUrl: string, triCount: number) => void;
   onUvWireframeGenerated?: (partKey: string, dataUrl: string) => void;
+  showcaseMode?: boolean;
 }
 
 /* ============================================================
@@ -97,11 +99,10 @@ function applyPartToMaterial(
   material: THREE.Material,
   state: PartState | undefined,
   isActive: boolean,
+  showcaseMode?: boolean,
 ) {
   if (!material) return;
 
-  // Upgrade to Physical Material if needed for hyper-realism features (sheen, clearcoat)
-  // We use standard material properties first then physical ones.
   const mat = material as THREE.MeshPhysicalMaterial;
   const internal = getOrInitState(mat);
 
@@ -111,23 +112,40 @@ function applyPartToMaterial(
     internal.originalColor = mat.color ? mat.color.clone() : null;
     internal.originalMapCached = true;
     mat.map = emptyBaseTex; // Ensure USE_MAP is active
+    
+    // Completely disable emissive configurations
     mat.emissiveMap = null;
     if (mat.emissive && typeof mat.emissive.set === "function") mat.emissive.set("#000000");
+    mat.emissiveIntensity = 0;
+    
     if (mat.color && typeof mat.color.set === "function") mat.color.set("#ffffff");
     mat.needsUpdate = true;
   }
 
-  // ---- COLOR (clean white when neutral, tints when user picks one) ----
+  // Force double side on all meshes for interior thickness
+  mat.side = THREE.DoubleSide;
+
+  // ---- COLOR & ACTIVE PART HIGHLIGHT TINT ----
   const userColor = state?.color;
   const isUserColor = !!userColor && userColor !== "#ffffff" && userColor !== "#dddddd";
-  if (mat.color && typeof mat.color.set === "function") {
-    mat.color.set(isUserColor ? userColor! : "#ffffff");
+  const baseColor = new THREE.Color(isUserColor ? userColor! : "#ffffff");
+  if (isActive) {
+    baseColor.lerp(new THREE.Color("#dcd2e6"), 0.15); // subtle purple tint for highlights
   }
+  if (mat.color && typeof mat.color.set === "function") {
+    mat.color.copy(baseColor);
+  }
+
+  // Clean emissive properties to avoid glowing effects
+  mat.emissiveMap = null;
+  if (mat.emissive && typeof mat.emissive.set === "function") {
+    mat.emissive.set("#000000");
+  }
+  mat.emissiveIntensity = 0;
 
   // ---- BASE TEXTURE ----
   const desiredSrc = resolveBaseTextureSrc(state);
   if (desiredSrc !== internal.appliedTextureSrc) {
-    // Release old texture before acquiring new one
     if (internal.appliedTextureSrc) {
       textureCache.release(internal.appliedTextureSrc, mat.map === emptyBaseTex ? null : mat.map);
     }
@@ -141,18 +159,8 @@ function applyPartToMaterial(
       t.generateMipmaps = true;
       t.needsUpdate = true;
       mat.map = t;
-
-      // Hyper-realism: use texture as emissive map to ensure "exact" colors
-      mat.emissiveMap = t;
-      if (mat.emissive && typeof mat.emissive.set === "function") mat.emissive.set("#ffffff");
-      mat.emissiveIntensity = 0.4;
     } else {
       mat.map = emptyBaseTex;
-      mat.emissiveMap = null;
-      if (mat.emissive && typeof mat.emissive.set === "function") {
-        mat.emissive.set("#000000");
-        mat.emissiveIntensity = 0;
-      }
     }
     internal.appliedTextureSrc = desiredSrc;
     mat.needsUpdate = true;
@@ -182,26 +190,20 @@ function applyPartToMaterial(
   // ---- TILING (UV vs world-space triplanar) ----
   const tilingMode = state?.tilingMode ?? "world";
   const tex = mat.map !== emptyBaseTex ? mat.map : null;
-  if (tex && state) {
-    applyTextureTransform(tex, {
-      scale: state.textureScale ?? 8,
-      rotation: state.textureRotation ?? 0,
-      offsetX: state.textureOffsetX ?? 0,
-      offsetY: state.textureOffsetY ?? 0,
-    });
-    if (mat.emissiveMap) {
-      applyTextureTransform(mat.emissiveMap, {
-        scale: state.textureScale ?? 8,
-        rotation: state.textureRotation ?? 0,
-        offsetX: state.textureOffsetX ?? 0,
-        offsetY: state.textureOffsetY ?? 0,
-      });
+  const transformOpts = state ? {
+    scale: state.textureScale ?? 8,
+    rotation: state.textureRotation ?? 0,
+    offsetX: state.textureOffsetX ?? 0,
+    offsetY: state.textureOffsetY ?? 0,
+  } : null;
+
+  if (tex && transformOpts) {
+    applyTextureTransform(tex, transformOpts);
+    if (mat.normalMap) {
+      applyTextureTransform(mat.normalMap, transformOpts);
     }
   }
 
-  // Both modes use world-space triplanar for continuous fabric across all mesh
-  // parts. UV mode maps textureScale → world scale; world mode uses worldTilingScale.
-  // Design layers remain UV-mapped independently via the shader overlay.
   const worldScale =
     tilingMode === "world"
       ? (state?.worldTilingScale ?? APP_DATA_0.tiling.defaultWorldScale)
@@ -215,41 +217,40 @@ function applyPartToMaterial(
   enableWorldTiling(mat, tilingOpts);
   updateWorldTilingUniforms(mat, tilingOpts);
 
-  // ---- FABRIC PRESET ----
+  // ---- FABRIC PRESET (Stitch physical parameters) ----
   const presetId = state?.fabricPreset ?? "cotton";
-  const preset = APP_DATA_0.fabricPresets[presetId] ?? APP_DATA_0.fabricPresets.cotton;
+  const preset = TEXTILE_PRESETS[presetId] ?? TEXTILE_PRESETS.cotton;
 
-  if (mat.roughness !== undefined) mat.roughness = state?.roughness ?? preset.roughness;
-  if (mat.metalness !== undefined) mat.metalness = preset.metalness;
-
-  if (mat.sheen !== undefined) {
-    mat.sheen = preset.sheen;
-    mat.sheenRoughness = preset.sheenRoughness;
-    if (!mat.sheenColor) mat.sheenColor = new THREE.Color("#ffffff");
+  mat.roughness = state?.roughness ?? preset.roughness;
+  mat.metalness = preset.metalness;
+  mat.anisotropy = preset.anisotropy;
+  mat.sheen = preset.sheen;
+  mat.sheenRoughness = preset.sheenRoughness;
+  if (!mat.sheenColor) {
+    mat.sheenColor = new THREE.Color(preset.sheenColor);
+  } else {
+    mat.sheenColor.set(preset.sheenColor);
   }
 
-  if (mat.clearcoat !== undefined) {
-    mat.clearcoat = preset.clearcoat;
-    mat.clearcoatRoughness = 0.4;
-  }
+  mat.clearcoat = preset.clearcoat;
+  mat.clearcoatRoughness = preset.clearcoatRoughness;
+  mat.envMapIntensity = state?.reflectionIntensity ?? preset.envMapIntensity;
 
-  mat.envMapIntensity = state?.reflectionIntensity ?? preset.envIntensity;
-
-  // ---- ACTIVE PART HIGHLIGHT ----
-  if (isActive && mat.emissive && typeof mat.emissive.set === "function") {
-    if (mat.map) {
-      mat.emissive.set("#b192c4");
-      mat.emissiveIntensity = 0.65;
-    } else {
-      mat.emissive.set("#7e3c8c");
-      mat.emissiveIntensity = 0.25;
-    }
-  } else if (!desiredSrc && mat.emissive && typeof mat.emissive.set === "function") {
-    mat.emissive.set("#000000");
-    mat.emissiveIntensity = 0;
-  } else if (mat.emissive && typeof mat.emissive.set === "function") {
-    mat.emissive.set("#ffffff");
-    mat.emissiveIntensity = 0.4;
+  // ---- SHADOWS & NORMAL MAP PIPELINE ----
+  if (showcaseMode) {
+    getNormalMap(presetId).then((nMap) => {
+      if (mat) {
+        mat.normalMap = nMap;
+        if (transformOpts && nMap) {
+          applyTextureTransform(nMap, transformOpts);
+        }
+        const ns = preset.normalScale;
+        if (mat.normalScale) mat.normalScale.set(ns[0], ns[1]);
+        mat.needsUpdate = true;
+      }
+    });
+  } else {
+    mat.normalMap = null;
   }
 }
 
@@ -300,6 +301,7 @@ function GlbGarment({
   onSelectPart,
   scene,
   onUvWireframeGenerated,
+  showcaseMode,
 }: {
   typeId: GarmentTypeId;
   partStates: Record<string, PartState>;
@@ -307,6 +309,7 @@ function GlbGarment({
   onSelectPart: (k: string) => void;
   scene: THREE.Group;
   onUvWireframeGenerated?: (partKey: string, dataUrl: string) => void;
+  showcaseMode?: boolean;
 }) {
   const garment = getGarment(typeId);
   const wireframeCache = useRef<Record<string, string>>({});
@@ -317,6 +320,9 @@ function GlbGarment({
       scene.traverse((obj) => {
         const mesh = obj as THREE.Mesh;
         if (!mesh || !mesh.isMesh) return;
+
+        mesh.castShadow = !!showcaseMode;
+        mesh.receiveShadow = !!showcaseMode;
 
         // Upgrade material once to Physical for hyper-realism
         if (!(mesh.material instanceof THREE.MeshPhysicalMaterial)) {
@@ -336,16 +342,20 @@ function GlbGarment({
         const isActive = activePart === key;
 
         if (isActive && onUvWireframeGenerated && !wireframeCache.current[key]) {
-          const wireframeUrl = generateUvWireframe(mesh);
-          wireframeCache.current[key] = wireframeUrl;
-          onUvWireframeGenerated(key, wireframeUrl);
+          const runIdle = (typeof window !== "undefined" && (window as any).requestIdleCallback) || ((cb: any) => setTimeout(cb, 1));
+          runIdle(() => {
+            const wireframeUrl = generateUvWireframe(mesh);
+            wireframeCache.current[key] = wireframeUrl;
+            onUvWireframeGenerated(key, wireframeUrl);
+          });
         }
 
         const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
         mats.forEach((m) => {
           if (!m) return;
           try {
-            applyPartToMaterial(m, state, isActive);
+            m.side = THREE.DoubleSide;
+            applyPartToMaterial(m, state, isActive, showcaseMode);
           } catch (e) {
             console.warn("[GlbGarment] material application failed", key, e);
           }
@@ -355,7 +365,7 @@ function GlbGarment({
     } catch (e) {
       console.warn("[GlbGarment] traverse failed", e);
     }
-  }, [scene, garment, partStates, activePart]);
+  }, [scene, garment, partStates, activePart, showcaseMode]);
 
   // Handle scene disposal on unmount - this is the "owner" of this cloned scene instance
   useEffect(() => {
@@ -393,6 +403,7 @@ type ProcProps = {
   partStates: Record<string, PartState>;
   activePart: string;
   onSelectPart: (k: string) => void;
+  showcaseMode?: boolean;
 };
 
 function PartMesh({
@@ -401,6 +412,7 @@ function PartMesh({
   partStates,
   activePart,
   onSelectPart,
+  showcaseMode,
   children,
   ...props
 }: ProcProps & {
@@ -415,7 +427,7 @@ function PartMesh({
   const isActive = activePart === k;
 
   useEffect(() => {
-    if (matRef.current) applyPartToMaterial(matRef.current, state, isActive);
+    if (matRef.current) applyPartToMaterial(matRef.current, state, isActive, showcaseMode);
   });
 
   // Release texture refs from this material on unmount
@@ -968,7 +980,11 @@ function GarmentBody({
   activePart,
   onSelectPart,
   onUvWireframeGenerated,
-}: ProcProps & { onUvWireframeGenerated?: (partKey: string, dataUrl: string) => void }) {
+  showcaseMode,
+}: ProcProps & {
+  onUvWireframeGenerated?: (partKey: string, dataUrl: string) => void;
+  showcaseMode?: boolean;
+}) {
   const [load, setLoad] = useState<LoadState>({ status: "loading", scene: null });
 
   useEffect(() => {
@@ -1022,6 +1038,7 @@ function GarmentBody({
           onSelectPart={onSelectPart}
           scene={load.scene}
           onUvWireframeGenerated={onUvWireframeGenerated}
+          showcaseMode={showcaseMode}
         />
       </Bounds>
     );
@@ -1035,6 +1052,7 @@ function GarmentBody({
         partStates={partStates}
         activePart={activePart}
         onSelectPart={onSelectPart}
+        showcaseMode={showcaseMode}
       />
     </Bounds>
   );
@@ -1120,6 +1138,7 @@ export function GarmentPreview({
   lassoMode = "freehand",
   onLassoMask,
   onUvWireframeGenerated,
+  showcaseMode = false,
 }: Props) {
   const orbitLocked = lassoActive && lassoMode !== "polygon";
   const groupRef = useRef<THREE.Group>(null);
@@ -1133,11 +1152,9 @@ export function GarmentPreview({
     [],
   );
 
-  // PERF: only render continuously when something needs to animate (spin /
-  // lasso). Otherwise demand-render so idle GPU drops to ~0%.
   return (
     <Canvas
-      shadows={false}
+      shadows={!!showcaseMode}
       camera={{ position: [0, 1.2, 4.5], fov: 40 }}
       dpr={[1, Math.min(1.5, APP_DATA_0.perf.dprCap)]}
       frameloop="always"
@@ -1163,7 +1180,21 @@ export function GarmentPreview({
       {/* Hyper-realistic Studio Rig: 3-point + Rim + Fill */}
       <ambientLight intensity={scene.ambient * 0.8} />
       <hemisphereLight args={["#ffffff", "#cfd0e0", 0.45]} />
-      <directionalLight position={[4, 8, 5]} intensity={scene.keyIntensity * 1.2} />
+      
+      {/* Directional light with tight bounds for self-shadowing */}
+      <directionalLight
+        castShadow={!!showcaseMode}
+        position={[4, 8, 5]}
+        intensity={scene.keyIntensity * 1.2}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+        shadow-camera-far={15}
+        shadow-camera-left={-2}
+        shadow-camera-right={2}
+        shadow-camera-top={2}
+        shadow-camera-bottom={-2}
+        shadow-bias={-0.0005}
+      />
       <directionalLight
         position={[-5, 4, -3]}
         intensity={scene.keyIntensity * 0.6}
@@ -1184,10 +1215,14 @@ export function GarmentPreview({
             activePart={activePart}
             onSelectPart={onSelectPart}
             onUvWireframeGenerated={onUvWireframeGenerated}
+            showcaseMode={showcaseMode}
           />
           <Mannequin visible={showMannequin} gender={garment.gender ?? "unisex"} />
         </group>
-        <Environment preset={scene.envPreset} />
+        <Environment
+          files={(!showcaseMode && scene.envPreset === "studio") ? "/models/environments/studio_small_03_1k.hdr" : undefined}
+          preset={showcaseMode ? "city" : (scene.envPreset === "studio" ? undefined : scene.envPreset)}
+        />
       </Suspense>
       {!isTransparent && (
         <ContactShadows

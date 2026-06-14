@@ -46,23 +46,23 @@ export function resolveMeshPartId(
 }
 
 /** Normalize GLB materials so Fabrixa can apply colors/textures reliably. */
-export function normalizeGarmentMaterial(mat: THREE.Material): THREE.MeshStandardMaterial {
-  if (mat instanceof THREE.MeshStandardMaterial) {
+export function normalizeGarmentMaterial(mat: THREE.Material): THREE.MeshPhysicalMaterial {
+  if (mat instanceof THREE.MeshPhysicalMaterial) {
     mat.side = THREE.DoubleSide;
     return mat;
   }
-  const std = new THREE.MeshStandardMaterial({
+  const phys = new THREE.MeshPhysicalMaterial({
     color: "#ffffff",
     roughness: 0.65,
     metalness: 0.05,
     side: THREE.DoubleSide,
   });
-  if ("color" in mat && (mat as THREE.MeshStandardMaterial).color) {
-    std.color.copy((mat as THREE.MeshStandardMaterial).color);
+  if ("color" in mat && (mat as any).color) {
+    phys.color.copy((mat as any).color);
   }
-  if ("map" in mat && (mat as THREE.MeshStandardMaterial).map) {
-    std.map = (mat as THREE.MeshStandardMaterial).map;
+  if ("map" in mat && (mat as any).map) {
+    phys.map = (mat as any).map;
   }
   mat.dispose();
-  return std;
+  return phys;
 }

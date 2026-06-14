@@ -63,6 +63,10 @@ export interface PartState {
   /** UV-space alpha mask (data URL). When set, only this region of the part
    *  receives applied patterns. Built by the 3D lasso selector. */
   selectionMaskDataUrl?: string | null;
+  /** Original texture URL before non-destructive recoloring was applied. */
+  originalTextureUrl?: string | null;
+  /** The palette currently derived or applied to this texture. */
+  derivedPalette?: string[] | null;
 }
 
 export const defaultPartState = (_defaultColor: string): PartState => ({
@@ -87,6 +91,8 @@ export const defaultPartState = (_defaultColor: string): PartState => ({
   reflectionIntensity: 0.45,
   roughness: 0.9,
   selectionMaskDataUrl: null,
+  originalTextureUrl: null,
+  derivedPalette: null,
 });
 
 export type GarmentTypeId =

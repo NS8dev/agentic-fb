@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import * as fabric from "fabric";
+import fabric from "fabric";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
@@ -34,6 +34,8 @@ import {
   MoreHorizontal,
   Grid3x3,
   Box,
+  Maximize,
+  Minimize,
 } from "lucide-react";
 import {
   GRADIENT_PRESETS,
@@ -42,6 +44,7 @@ import {
 } from "@/lib/fabrixa/presets";
 import { SelectionMask, type SelectionMode } from "@/lib/fabrixa/selectionMask";
 import { APP_DATA_0 } from "@/lib/fabrixa/APP_DATA_0";
+import { type DesignLayer } from "@/lib/fabrixa/garments";
 import { useRunGated } from "@/lib/fabrixa/runGated";
 import { makeSeamlessTile } from "@/lib/fabrixa/imageProcessing/seamlessTile";
 import {
@@ -152,11 +155,78 @@ interface Props {
   /** Per-part/layer autosave namespace — prevents cross-part canvas bleed. */
   autosaveKey?: string;
   uvWireframeUrl?: string;
+  activeLayer?: DesignLayer | null;
+  bgTextureUrl?: string | null;
 }
 
 const SNAP_THRESHOLD = 6;
 
-type Tool = "select" | "brush" | "eraser" | "pattern" | "lasso" | "polygon" | "maskBrush";
+type Tool = "select" | "brush" | "eraser" | "pattern" | "lasso" | "polygon" | "maskBrush" | "wand";
+
+/**
+ * Loads a mask image URL onto a canvas and scans pixels to calculate the selection's bounding box.
+ */
+function getMaskBoundingBox(
+  maskUrl: string,
+  width: number,
+  height: number
+): Promise<{ left: number; top: number; width: number; height: number } | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(null);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      try {
+        const imgData = ctx.getImageData(0, 0, width, height);
+        const data = imgData.data;
+        let minX = width,
+          minY = height,
+          maxX = 0,
+          maxY = 0;
+        let found = false;
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const idx = (y * width + x) * 4;
+            const alpha = data[idx + 3];
+            // If there's color/alpha present, consider it part of the mask
+            if (alpha > 5) {
+              if (x < minX) minX = x;
+              if (x > maxX) maxX = x;
+              if (y < minY) minY = y;
+              if (y > maxY) maxY = y;
+              found = true;
+            }
+          }
+        }
+
+        if (found) {
+          resolve({
+            left: minX,
+            top: minY,
+            width: maxX - minX + 1,
+            height: maxY - minY + 1,
+          });
+        } else {
+          resolve(null);
+        }
+      } catch (e) {
+        console.warn("Failed to read image data for mask bounding box", e);
+        resolve(null);
+      }
+    };
+    img.onerror = () => resolve(null);
+    img.src = maskUrl;
+  });
+}
 
 export function FabricEditor({
   onChange,
@@ -166,6 +236,8 @@ export function FabricEditor({
   initialContentUrl,
   autosaveKey,
   uvWireframeUrl,
+  activeLayer,
+  bgTextureUrl,
 }: Props) {
   // 1. Hooks & Refs
   const runGated = useRunGated();
@@ -191,7 +263,10 @@ export function FabricEditor({
   // 2. State
   const [canvasSize, setCanvasSize] = useState({ w: 600, h: 600 });
   const sizeRef = useRef({ w: 600, h: 600 });
+  const [canvasReady, setCanvasReady] = useState(false);
   const [bgColor, setBgColor] = useState("#ffffff");
+  const [selectionBounds, setSelectionBounds] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  const maskImgRef = useRef<fabric.FabricImage | null>(null);
   const [opacity, setOpacity] = useState(100);
   const [hue, setHue] = useState(0);
   const [saturation, setSaturation] = useState(0);
@@ -233,6 +308,61 @@ export function FabricEditor({
   const [importing, setImporting] = useState<string | null>(null);
 
   // 3. Core Callbacks
+  // Fit viewport camera to the current selection bounds with 50px margin
+  const fitToSelection = useCallback((customBounds?: typeof selectionBounds) => {
+    const c = canvasRef.current;
+    if (!c) return;
+    const bounds = customBounds !== undefined ? customBounds : selectionBounds;
+    if (!bounds) {
+      requestAnimationFrame(() => {
+        c.setViewportTransform([1, 0, 0, 1, 0, 0]);
+        c.requestRenderAll();
+      });
+      return;
+    }
+
+    const margin = 50;
+    const viewWidth = c.getWidth();
+    const viewHeight = c.getHeight();
+
+    const boxW = bounds.width + margin * 2;
+    const boxH = bounds.height + margin * 2;
+
+    const zoomX = viewWidth / boxW;
+    const zoomY = viewHeight / boxH;
+    const zoom = Math.max(0.1, Math.min(10, Math.min(zoomX, zoomY)));
+
+    const centerX = bounds.left + bounds.width / 2;
+    const centerY = bounds.top + bounds.height / 2;
+
+    const panX = viewWidth / 2 - centerX * zoom;
+    const panY = viewHeight / 2 - centerY * zoom;
+
+    requestAnimationFrame(() => {
+      c.setViewportTransform([zoom, 0, 0, zoom, panX, panY]);
+      c.requestRenderAll();
+    });
+  }, [selectionBounds]);
+
+  // Watch target mask url and resolve bounds
+  useEffect(() => {
+    const targetMaskUrl = activeLayer?.maskUrl ?? initialMaskUrl;
+    if (targetMaskUrl) {
+      getMaskBoundingBox(targetMaskUrl, canvasSize.w, canvasSize.h).then((bounds) => {
+        setSelectionBounds(bounds);
+      });
+    } else {
+      setSelectionBounds(null);
+    }
+  }, [activeLayer?.maskUrl, initialMaskUrl, canvasSize.w, canvasSize.h]);
+
+  // Auto-zoom to selection bounds on initialization
+  useEffect(() => {
+    if (canvasReady && selectionBounds) {
+      fitToSelection(selectionBounds);
+    }
+  }, [canvasReady, selectionBounds, fitToSelection]);
+
   const refreshLayers = useCallback(() => {
     const c = canvasRef.current;
     if (!c) return;
@@ -619,7 +749,104 @@ export function FabricEditor({
     });
   }, []);
 
-  const isMaskTool = (t: Tool) => t === "lasso" || t === "polygon" || t === "maskBrush";
+  const isMaskTool = (t: Tool) => t === "lasso" || t === "polygon" || t === "maskBrush" || t === "wand";
+
+  const run2dFloodFill = (startX: number, startY: number) => {
+    const c = canvasRef.current;
+    const m = maskRef.current;
+    if (!c || !m) return;
+
+    const w = sizeRef.current.w;
+    const h = sizeRef.current.h;
+
+    // Temporarily hide overlays to scan the raw design pixels underneath
+    const overlay = c.getObjects().find((o) => (o as any).id === "maskOverlay");
+    const wireframe = c.getObjects().find((o) => (o as any).id === "uvWireframeOverlay");
+    if (overlay) overlay.set("visible", false);
+    if (wireframe) wireframe.set("visible", false);
+    c.renderAll();
+
+    const tempCanvas = document.createElement("canvas");
+    tempCanvas.width = w;
+    tempCanvas.height = h;
+    const tempCtx = tempCanvas.getContext("2d")!;
+    tempCtx.drawImage(c.getElement(), 0, 0, w, h);
+
+    // Restore overlays
+    if (overlay) overlay.set("visible", true);
+    if (wireframe) wireframe.set("visible", true);
+    c.renderAll();
+
+    const imgData = tempCtx.getImageData(0, 0, w, h);
+    const data = imgData.data;
+
+    const sx = Math.floor(startX);
+    const sy = Math.floor(startY);
+    if (sx < 0 || sx >= w || sy < 0 || sy >= h) return;
+
+    const startIdx = (sy * w + sx) * 4;
+    const targetR = data[startIdx];
+    const targetG = data[startIdx + 1];
+    const targetB = data[startIdx + 2];
+    const targetA = data[startIdx + 3];
+
+    const buf = document.createElement("canvas");
+    buf.width = w;
+    buf.height = h;
+    const bctx = buf.getContext("2d")!;
+    const bufImgData = bctx.createImageData(w, h);
+    const bufData = bufImgData.data;
+
+    const visited = new Uint8Array(w * h);
+    const queue: number[] = [sy * w + sx];
+    visited[sy * w + sx] = 1;
+    let head = 0;
+
+    const tolerance = replaceTol;
+
+    while (head < queue.length) {
+      const idx = queue[head++];
+      const cy = Math.floor(idx / w);
+      const cx = idx % w;
+
+      const pIdx = idx * 4;
+      bufData[pIdx] = 255;
+      bufData[pIdx + 1] = 255;
+      bufData[pIdx + 2] = 255;
+      bufData[pIdx + 3] = 255;
+
+      const neighbors = [];
+      if (cx > 0) neighbors.push(idx - 1);
+      if (cx < w - 1) neighbors.push(idx + 1);
+      if (cy > 0) neighbors.push(idx - w);
+      if (cy < h - 1) neighbors.push(idx + w);
+
+      for (const nIdx of neighbors) {
+        if (visited[nIdx] === 0) {
+          visited[nIdx] = 1;
+          const nPix = nIdx * 4;
+          const nr = data[nPix];
+          const ng = data[nPix + 1];
+          const nb = data[nPix + 2];
+          const na = data[nPix + 3];
+
+          const d = Math.sqrt(
+            (nr - targetR) ** 2 +
+            (ng - targetG) ** 2 +
+            (nb - targetB) ** 2 +
+            (na - targetA) ** 2
+          );
+          if (d <= tolerance) {
+            queue.push(nIdx);
+          }
+        }
+      }
+    }
+
+    bctx.putImageData(bufImgData, 0, 0);
+    m.commitBuffer(buf, selMode);
+    renderOverlay();
+  };
 
   const overlayPoint = (ev: PointerEvent | React.PointerEvent): { x: number; y: number } => {
     const el = overlayElRef.current!;
@@ -683,7 +910,10 @@ export function FabricEditor({
     (e.target as HTMLElement).setPointerCapture(e.pointerId);
     const p = overlayPoint(e.nativeEvent);
     drawingRef.current = true;
-    if (tool === "lasso") {
+    if (tool === "wand") {
+      run2dFloodFill(p.x, p.y);
+      drawingRef.current = false; // Wand is a single-click action
+    } else if (tool === "lasso") {
       polyPtsRef.current = [p];
     } else if (tool === "polygon") {
       if (polyPtsRef.current.length === 0) polyPtsRef.current = [p];
@@ -988,7 +1218,9 @@ export function FabricEditor({
     c.loadFromJSON(JSON.parse(h.stack[h.index]), undefined, { signal: abortRef.current?.signal })
       .then(() => {
         if (!canvasRef.current || canvasRef.current !== c) return;
-        c.renderAll();
+        if (canvasRef.current) {
+          c.renderAll();
+        }
         h.lock = false;
         emit();
       })
@@ -1008,7 +1240,9 @@ export function FabricEditor({
     c.loadFromJSON(JSON.parse(h.stack[h.index]), undefined, { signal: abortRef.current?.signal })
       .then(() => {
         if (!canvasRef.current || canvasRef.current !== c) return;
-        c.renderAll();
+        if (canvasRef.current) {
+          c.renderAll();
+        }
         h.lock = false;
         emit();
       })
@@ -1021,10 +1255,11 @@ export function FabricEditor({
 
   const clearAll = () => {
     const c = canvasRef.current;
-    if (!c) return;
-    c.getObjects().forEach((o) => c.remove(o));
-    c.backgroundColor = bgColor;
-    c.renderAll();
+    if (c) {
+      c.getObjects().forEach((o) => c.remove(o));
+      c.backgroundColor = bgColor;
+      c.renderAll();
+    }
   };
 
   const applyPatternBg = async (id: string) => {
@@ -1200,6 +1435,7 @@ export function FabricEditor({
         antsPhaseRef.current = (antsPhaseRef.current + 1) % 1000;
         last = now;
         renderOverlay();
+        canvasRef.current?.requestRenderAll();
       }
       antsRafRef.current = requestAnimationFrame(tick);
     };
@@ -1227,6 +1463,7 @@ export function FabricEditor({
       preserveObjectStacking: true,
     });
     canvasRef.current = c;
+    setCanvasReady(true);
 
     if (uvWireframeUrl) {
       fabric.FabricImage.fromURL(uvWireframeUrl)
@@ -1252,36 +1489,17 @@ export function FabricEditor({
         .catch((e) => console.warn("Failed to load uvWireframeUrl", e));
     }
 
-    if (initialMaskUrl) {
-      fabric.FabricImage.fromURL(initialMaskUrl)
-        .then((img) => {
-          if (!canvasRef.current || canvasRef.current !== c) return;
-          img.scaleToWidth(canvasSize.w);
-          img.scaleToHeight(canvasSize.h);
-          img.set({ absolutePositioned: true, originX: "left", originY: "top", left: 0, top: 0 });
-          c.clipPath = img;
-
-          img.clone().then((overlay: any) => {
-            overlay.set({
-              id: "maskOverlay",
-              opacity: 0.15,
-              selectable: false,
-              evented: false,
-              globalCompositeOperation: "source-over",
-            });
-            c.add(overlay);
-            c.sendObjectBackwards(overlay);
-            c.requestRenderAll();
-          });
-
-          c.requestRenderAll();
-        })
-        .catch((e) => console.warn("Failed to load initialMaskUrl clipPath", e));
-    }
+    // initialMaskUrl loading removed here; handled reactively by dynamic clipPath useEffect below.
 
     const initCanvas = async () => {
+      // Abort if the ref is cleared, which happens on cleanup
+      if (!canvasRef.current) return;
+
       const saveKey = autosaveKey ? `fabrixa:autosave:${autosaveKey}` : "fabrixa:autosave";
-      const dbRestore = !initialMaskUrl ? await getDbData(saveKey) : null;
+      const dbRestore = await getDbData(saveKey);
+      
+      if (!canvasRef.current) return;
+
       const restore = initialJson || dbRestore;
 
       if (restore) {
@@ -1293,6 +1511,58 @@ export function FabricEditor({
             c.renderAll();
             saveHistory();
             emit();
+
+            // Post-load selection mask application
+            if (initialMaskUrl) {
+              try {
+                const img = await fabric.FabricImage.fromURL(initialMaskUrl, { crossOrigin: "anonymous" });
+                img.scaleToWidth(canvasSize.w);
+                img.scaleToHeight(canvasSize.h);
+                img.set({
+                  isClipPath: true,
+                  absolutePositioned: true,
+                  originX: "left",
+                  originY: "top",
+                  left: 0,
+                  top: 0,
+                });
+                maskImgRef.current = img;
+
+                c.getObjects().forEach((obj) => {
+                  if (
+                    obj.id !== "backgroundContextLayer" &&
+                    obj.id !== "maskBoundaryLayer" &&
+                    obj.id !== "maskOverlay" &&
+                    obj.id !== "uvWireframeOverlay" &&
+                    obj.id !== "guide"
+                  ) {
+                    obj.set({ clipPath: fabric.util.object.clone(img) });
+                  }
+                });
+
+                if (c.freeDrawingBrush) {
+                  c.freeDrawingBrush.clipPath = fabric.util.object.clone(img);
+                }
+
+                // Create boundary overlay at 20% opacity
+                const boundary = await img.clone();
+                boundary.set({
+                  id: "maskBoundaryLayer",
+                  opacity: 0.20,
+                  selectable: false,
+                  evented: false,
+                  globalCompositeOperation: "source-over",
+                  left: 0,
+                  top: 0,
+                });
+                c.add(boundary);
+                c.bringToFront(boundary);
+                c.requestRenderAll();
+                emit();
+              } catch (err) {
+                console.warn("Failed to apply initialMaskUrl in post-load", err);
+              }
+            }
           } else {
             saveHistory();
           }
@@ -1328,7 +1598,23 @@ export function FabricEditor({
       emit();
       refreshLayers();
     };
-    c.on("object:added", onAny);
+    c.on("object:added", (e: any) => {
+      const obj = e.target;
+      if (obj) {
+        if (
+          obj.id !== "backgroundContextLayer" &&
+          obj.id !== "maskBoundaryLayer" &&
+          obj.id !== "maskOverlay" &&
+          obj.id !== "uvWireframeOverlay" &&
+          obj.id !== "guide"
+        ) {
+          if (maskImgRef.current && obj.clipPath !== maskImgRef.current) {
+            obj.set({ clipPath: fabric.util.object.clone(maskImgRef.current) });
+          }
+        }
+      }
+      onAny();
+    });
     c.on("object:modified", onAny);
     c.on("object:removed", onAny);
     c.on("object:scaling", onAny);
@@ -1439,8 +1725,74 @@ export function FabricEditor({
       c.requestRenderAll();
     });
     c.on("after:render", () => {
-      const ctx = (c as unknown as { contextTop: CanvasRenderingContext2D }).contextTop;
+      const currentCanvas = canvasRef.current;
+      if (!currentCanvas) return;
+
+      // Sort layers: desaturated background at bottom, mask boundary at top
+      const bg = currentCanvas.getObjects().find((o) => (o as any).id === "backgroundContextLayer");
+      if (bg && typeof currentCanvas.sendToBack === "function") {
+        currentCanvas.sendToBack(bg);
+      }
+      const boundary = currentCanvas
+        .getObjects()
+        .find(
+          (o) => (o as any).id === "maskBoundaryLayer" || (o as any).id === "maskOverlay"
+        );
+      if (boundary && typeof currentCanvas.bringToFront === "function") {
+        currentCanvas.bringToFront(boundary);
+      }
+
+      const ctx = (currentCanvas as unknown as { contextTop: CanvasRenderingContext2D }).contextTop;
       if (!ctx) return;
+
+      // Marching ants selection contour drawing
+      const m = maskRef.current;
+      if (m && !m.isEmpty()) {
+        ctx.save();
+        const w = currentCanvas.getWidth();
+        const h = currentCanvas.getHeight();
+
+        const edgeCanvas = document.createElement("canvas");
+        edgeCanvas.width = w;
+        edgeCanvas.height = h;
+        const ectx = edgeCanvas.getContext("2d")!;
+        ectx.drawImage(m.canvas, 0, 0, w, h);
+        ectx.globalCompositeOperation = "difference";
+        ectx.drawImage(m.canvas, 1, 0, w, h);
+        ectx.drawImage(m.canvas, -1, 0, w, h);
+        ectx.drawImage(m.canvas, 0, 1, w, h);
+        ectx.drawImage(m.canvas, 0, -1, w, h);
+
+        const patCanvas = document.createElement("canvas");
+        patCanvas.width = 10;
+        patCanvas.height = 10;
+        const pctx = patCanvas.getContext("2d")!;
+        pctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
+        pctx.lineWidth = 2;
+        pctx.setLineDash([5, 5]);
+        pctx.lineDashOffset = -antsPhaseRef.current;
+        pctx.beginPath();
+        pctx.moveTo(0, 5);
+        pctx.lineTo(10, 5);
+        pctx.stroke();
+
+        const antCanvas = document.createElement("canvas");
+        antCanvas.width = w;
+        antCanvas.height = h;
+        const actx = antCanvas.getContext("2d")!;
+        actx.drawImage(edgeCanvas, 0, 0);
+        actx.globalCompositeOperation = "source-in";
+        const pattern = actx.createPattern(patCanvas, "repeat")!;
+        actx.fillStyle = pattern;
+        actx.fillRect(0, 0, w, h);
+
+        ctx.globalCompositeOperation = "source-over";
+        ctx.shadowColor = "rgba(0,0,0,0.85)";
+        ctx.shadowBlur = 1.5;
+        ctx.drawImage(antCanvas, 0, 0);
+        ctx.restore();
+      }
+
       ctx.save();
       ctx.strokeStyle = "rgba(126,60,140,0.9)";
       ctx.setLineDash([4, 4]);
@@ -1448,13 +1800,13 @@ export function FabricEditor({
       if (guideLayer.v != null) {
         ctx.beginPath();
         ctx.moveTo(guideLayer.v, 0);
-        ctx.lineTo(guideLayer.v, c.getHeight());
+        ctx.lineTo(guideLayer.v, currentCanvas.getHeight());
         ctx.stroke();
       }
       if (guideLayer.h != null) {
         ctx.beginPath();
         ctx.moveTo(0, guideLayer.h);
-        ctx.lineTo(c.getWidth(), guideLayer.h);
+        ctx.lineTo(currentCanvas.getWidth(), guideLayer.h);
         ctx.stroke();
       }
       ctx.restore();
@@ -1489,11 +1841,14 @@ export function FabricEditor({
       controller.abort();
       abortRef.current = null;
       try {
-        c.dispose();
+        if (c && !(c as any).isDisposed) {
+          c.dispose();
+        }
       } catch (e) {
         console.warn("Fabric disposal error", e);
       }
       canvasRef.current = null;
+      setCanvasReady(false);
     };
   }, []);
 
@@ -1509,6 +1864,110 @@ export function FabricEditor({
       renderOverlay();
     }
   }, [canvasSize, renderOverlay]);
+
+  // Load background texture context, selection boundary, and setup individual object clipping
+  useEffect(() => {
+    const c = canvasRef.current;
+    if (!c || !canvasReady) return;
+
+    // Remove existing layers first
+    const existingBg = c.getObjects().find((o) => (o as any).id === "backgroundContextLayer");
+    if (existingBg) c.remove(existingBg);
+
+    const existingBoundary = c.getObjects().find(
+      (o) => (o as any).id === "maskBoundaryLayer" || (o as any).id === "maskOverlay"
+    );
+    if (existingBoundary) c.remove(existingBoundary);
+
+    c.clipPath = undefined;
+    c.requestRenderAll();
+
+    const targetMaskUrl = activeLayer?.maskUrl ?? initialMaskUrl ?? null;
+
+    const loadBgContext = async () => {
+      if (bgTextureUrl) {
+        try {
+          const img = await fabric.FabricImage.fromURL(bgTextureUrl, { crossOrigin: "anonymous" });
+          img.scaleToWidth(canvasSize.w);
+          img.scaleToHeight(canvasSize.h);
+          img.set({
+            id: "backgroundContextLayer",
+            selectable: false,
+            evented: false,
+            left: 0,
+            top: 0,
+          });
+          const satFilter = new fabric.filters.Saturation({ saturation: -0.8 });
+          img.filters.push(satFilter);
+          img.applyFilters();
+          c.add(img);
+          c.sendToBack(img);
+          c.requestRenderAll();
+        } catch (e) {
+          console.warn("Failed to load backgroundContextLayer", e);
+        }
+      }
+    };
+
+    const loadMaskLayers = async () => {
+      if (targetMaskUrl) {
+        try {
+          const img = await fabric.FabricImage.fromURL(targetMaskUrl, { crossOrigin: "anonymous" });
+          img.scaleToWidth(canvasSize.w);
+          img.scaleToHeight(canvasSize.h);
+          img.set({
+            isClipPath: true,
+            absolutePositioned: true,
+            originX: "left",
+            originY: "top",
+            left: 0,
+            top: 0,
+          });
+          maskImgRef.current = img;
+
+          // Clip existing objects (excluding background/boundary/overlays)
+          c.getObjects().forEach((obj) => {
+            if (
+              obj.id !== "backgroundContextLayer" &&
+              obj.id !== "maskBoundaryLayer" &&
+              obj.id !== "maskOverlay" &&
+              obj.id !== "uvWireframeOverlay" &&
+              obj.id !== "guide"
+            ) {
+              obj.set({ clipPath: fabric.util.object.clone(img) });
+            }
+          });
+
+          // Clip free drawing brush
+          if (c.freeDrawingBrush) {
+            c.freeDrawingBrush.clipPath = fabric.util.object.clone(img);
+          }
+
+          // Create boundary overlay at 20% opacity
+          const boundary = await img.clone();
+          boundary.set({
+            id: "maskBoundaryLayer",
+            opacity: 0.20,
+            selectable: false,
+            evented: false,
+            globalCompositeOperation: "source-over",
+            left: 0,
+            top: 0,
+          });
+          c.add(boundary);
+          c.bringToFront(boundary);
+          c.requestRenderAll();
+        } catch (e) {
+          console.warn("Failed to load mask layer for clipping", e);
+          maskImgRef.current = null;
+        }
+      } else {
+        maskImgRef.current = null;
+      }
+    };
+
+    loadBgContext().then(() => void loadMaskLayers());
+  }, [canvasReady, activeLayer?.maskUrl, initialMaskUrl, bgTextureUrl, canvasSize.w, canvasSize.h]);
 
   useEffect(() => {
     const c = canvasRef.current;
@@ -1526,6 +1985,9 @@ export function FabricEditor({
       const b = new fabric.PencilBrush(c);
       b.color = brushColor;
       b.width = brushSize;
+      if (maskImgRef.current) {
+        b.clipPath = fabric.util.object.clone(maskImgRef.current);
+      }
       c.freeDrawingBrush = b;
     } else if (tool === "eraser") {
       const b = new fabric.PencilBrush(c);
@@ -1545,11 +2007,14 @@ export function FabricEditor({
         const pb = new fabric.PatternBrush(canvasRef.current);
         pb.source = img as unknown as HTMLCanvasElement;
         pb.width = brushSize * 3;
+        if (maskImgRef.current) {
+          pb.clipPath = fabric.util.object.clone(maskImgRef.current);
+        }
         canvasRef.current.freeDrawingBrush = pb;
       };
       img.src = dataUrl;
     }
-  }, [tool, brushColor, brushSize, bgColor, patternBrushId, patternColor, patternBg]);
+  }, [tool, brushColor, brushSize, bgColor, patternBrushId, patternColor, patternBg, maskImgRef.current]);
 
   useEffect(() => {
     const obj = selected;
@@ -1766,7 +2231,14 @@ export function FabricEditor({
             onClick={() => setTool("maskBrush")}
             variant={tbtn(tool === "maskBrush")}
           >
-            <Wand2 className="h-4 w-4" />
+            <Brush className="h-4 w-4" />
+          </ToolBtn>
+          <ToolBtn
+            label="Magic Wand"
+            onClick={() => setTool("wand")}
+            variant={tbtn(tool === "wand")}
+          >
+            <Sparkles className="h-4 w-4" />
           </ToolBtn>
           <Sep />
           <Popover>
@@ -1870,6 +2342,28 @@ export function FabricEditor({
           </ToolBtn>
           <ToolBtn label="Redo" onClick={redo}>
             <Redo2 className="h-4 w-4" />
+          </ToolBtn>
+          <Sep />
+          <ToolBtn
+            label="Fit to Selection"
+            onClick={() => fitToSelection()}
+            disabled={!selectionBounds}
+          >
+            <Maximize className="h-4 w-4" />
+          </ToolBtn>
+          <ToolBtn
+            label="Reset View"
+            onClick={() => {
+              const c = canvasRef.current;
+              if (c) {
+                requestAnimationFrame(() => {
+                  c.setViewportTransform([1, 0, 0, 1, 0, 0]);
+                  c.requestRenderAll();
+                });
+              }
+            }}
+          >
+            <Minimize className="h-4 w-4" />
           </ToolBtn>
           <div className="flex shrink-0 items-center gap-1.5 sm:ml-auto sm:pl-2">
             {/* Aspect Ratio Selector */}

@@ -25,11 +25,7 @@ export default defineConfig({
   },
   plugins: [
     tsconfigPaths(),
-    tanstackStart({
-      server: {
-        preset: "cloudflare-module",
-      },
-    }),
+    tanstackStart(),
     react(),
     tailwindcss(),
   ],

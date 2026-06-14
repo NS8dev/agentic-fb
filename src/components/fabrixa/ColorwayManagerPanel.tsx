@@ -25,7 +25,7 @@ import {
   extractPlates,
   generateAlgorithmicPalettes,
   generateHarmoniousPalette
-} from "@/lib/fabrixa/imageProcessing/ColorTheory";
+} from "@/lib/fabrixa/imageProcessing/colorTheory";
 import { recolorTexture } from "@/lib/fabrixa/imageProcessing/patternRecolor";
 import { CoinCostBadge } from "@/components/fabrixa/CoinCostBadge";
 

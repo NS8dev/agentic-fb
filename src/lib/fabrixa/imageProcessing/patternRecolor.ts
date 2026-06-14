@@ -1,4 +1,4 @@
-import { hexToRgb, getLuminance } from "./ColorTheory";
+import { hexToRgb, getLuminance } from "./colorTheory";
 
 /**
  * Recolors a pattern texture non-destructively using destination-in compositing.

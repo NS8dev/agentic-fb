@@ -65,7 +65,7 @@ export interface Entitlement {
 }
 
 type RootCfg = {
-  featureCosts: Record<FeatureCostKey, number>;
+  featureCosts: Partial<Record<FeatureCostKey, number>>;
   dailyCaps: {
     ai: Record<string, number>;
     showroom: Record<string, number>;
@@ -73,11 +73,11 @@ type RootCfg = {
   tierDailyCoins: Record<string, number>;
 };
 
-const CFG = rootConfig as RootCfg;
+const CFG = rootConfig as unknown as RootCfg;
 const COSTS = CFG.featureCosts;
 
 export function costOfFeature(f: FeatureCostKey): number {
-  if (COSTS && (COSTS as any)[f] !== undefined) return (COSTS as any)[f];
+  if (COSTS && COSTS[f] !== undefined) return COSTS[f]!;
 
   // Masked region apply costs half of a full-part apply
   if (f === "MASKED_APPLY") {
@@ -108,7 +108,7 @@ export function costOfFeature(f: FeatureCostKey): number {
   };
   const action = mapping[f];
   if (!action) return 0;
-  return (APP_DATA_0.coinCosts as any)[action] ?? 0;
+  return (APP_DATA_0.coinCosts as Record<string, number>)[action] ?? 0;
 }
 
 export function tierFamily(tier: SubscriptionTier): "none" | "creator" | "studio" | "enterprise" {

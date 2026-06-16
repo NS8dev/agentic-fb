@@ -14,7 +14,7 @@ import {
   Sparkles,
   RotateCcw,
   Loader2,
-  Palette
+  Palette,
 } from "lucide-react";
 import { toast } from "sonner";
 import type { Colorway, ProjectColorways } from "@/lib/fabrixa/colorway/colorwayManager";
@@ -24,8 +24,8 @@ import { smartPalette } from "@/lib/fabrixa/ai";
 import {
   extractPlates,
   generateAlgorithmicPalettes,
-  generateHarmoniousPalette
-} from "@/lib/fabrixa/imageProcessing/colorTheoryUtils";
+  generateHarmoniousPalette,
+} from "@/lib/fabrixa/imageProcessing/colorTheory";
 import { recolorTexture } from "@/lib/fabrixa/imageProcessing/patternRecolor";
 import { CoinCostBadge } from "@/components/fabrixa/CoinCostBadge";
 
@@ -51,7 +51,7 @@ export function ColorwayManagerPanel({
   onRename,
   activePartKey,
   activePartState,
-  updateActivePart
+  updateActivePart,
 }: ColorwayManagerPanelProps) {
   const [styleBrief, setStyleBrief] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
@@ -66,7 +66,7 @@ export function ColorwayManagerPanel({
       if (activePartState?.originalTextureUrl || activePartState?.derivedPalette) {
         updateActivePart({
           originalTextureUrl: null,
-          derivedPalette: null
+          derivedPalette: null,
         });
       }
       return;
@@ -79,7 +79,7 @@ export function ColorwayManagerPanel({
     if (hasOriginal && !isRecolored && textureUrl !== activePartState.originalTextureUrl) {
       updateActivePart({
         originalTextureUrl: null,
-        derivedPalette: null
+        derivedPalette: null,
       });
       lastRecoloredUrlRef.current = null;
       return;
@@ -94,7 +94,7 @@ export function ColorwayManagerPanel({
           if (active) {
             updateActivePart({
               originalTextureUrl: textureUrl,
-              derivedPalette: colors
+              derivedPalette: colors,
             });
           }
         } catch (e) {
@@ -124,7 +124,7 @@ export function ColorwayManagerPanel({
       lastRecoloredUrlRef.current = dataUrl;
       updateActivePart({
         textureDataUrl: dataUrl,
-        derivedPalette: newPalette
+        derivedPalette: newPalette,
       });
       toast.success(`${label} applied successfully!`);
     } catch (e) {
@@ -154,12 +154,15 @@ export function ColorwayManagerPanel({
       toast.error("Select a part with an active pattern texture first.");
       return;
     }
-    const baseColor = currentPlates[Math.min(activeSwatchIndex, currentPlates.length - 1)] || currentPlates[0] || "#ffffff";
+    const baseColor =
+      currentPlates[Math.min(activeSwatchIndex, currentPlates.length - 1)] ||
+      currentPlates[0] ||
+      "#ffffff";
     const newPalette = generateHarmoniousPalette(baseColor, mode, currentPlates.length);
     const labelMap = {
       triadic: "Triadic harmony",
       complementary: "Complementary harmony",
-      "split-complementary": "Split-Complementary harmony"
+      "split-complementary": "Split-Complementary harmony",
     };
     void handleRecolor(newPalette, labelMap[mode]);
   };
@@ -199,7 +202,7 @@ export function ColorwayManagerPanel({
       updateActivePart({
         textureDataUrl: activePartState.originalTextureUrl,
         originalTextureUrl: null,
-        derivedPalette: null
+        derivedPalette: null,
       });
       lastRecoloredUrlRef.current = null;
       toast.success("Reverted to original design.");
@@ -363,7 +366,10 @@ export function ColorwayManagerPanel({
                 {isProcessing ? (
                   <Loader2 className="h-3 w-3 animate-spin" />
                 ) : (
-                  <>Recolor <CoinCostBadge feature="AI_SMART_PALETTE" className="relative ml-0.5 top-0" /></>
+                  <>
+                    Recolor{" "}
+                    <CoinCostBadge feature="AI_SMART_PALETTE" className="relative ml-0.5 top-0" />
+                  </>
                 )}
               </Button>
             </div>
@@ -413,7 +419,7 @@ function ColorwayRow({
   onApply,
   onDuplicate,
   onDelete,
-  onRename
+  onRename,
 }: {
   colorway: Colorway;
   active: boolean;

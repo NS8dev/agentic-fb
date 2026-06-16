@@ -24,11 +24,5 @@ export default defineConfig({
       path.resolve(__dirname, "node_modules/firebase/firestore/dist/esm/index.esm.js"),
     ],
   },
-  plugins: [
-    tsconfigPaths(),
-    tanstackStart(),
-    netlify(),
-    react(),
-    tailwindcss(),
-  ],
+  plugins: [tsconfigPaths(), tanstackStart(), netlify(), react(), tailwindcss()],
 });

@@ -581,7 +581,8 @@ export function FabrixaApp() {
     if (!state) return;
 
     const id = newLayerId();
-    const EMPTY_PNG = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    const EMPTY_PNG =
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
     const newLayer: DesignLayer = {
       id,
       name: `Layer ${(state.layers?.length || 0) + 1}`,
@@ -1414,7 +1415,10 @@ export function FabrixaApp() {
                     ? partStates[activePart]?.layers?.find((l) => l.id === activeLayerId)
                     : null
                 }
-                bgTextureUrl={partStates[activePart]?.originalTextureUrl || partStates[activePart]?.textureDataUrl}
+                bgTextureUrl={
+                  partStates[activePart]?.originalTextureUrl ||
+                  partStates[activePart]?.textureDataUrl
+                }
                 onChange={(url, json) => {
                   setDesignUrl(url);
                   setDesignJson(json);
@@ -1914,9 +1918,7 @@ export function FabrixaApp() {
                         <CheckCircle2 className="mr-1.5 h-4 w-4" />
                         Apply current design here
                         <CoinCostBadge
-                          feature={
-                            getActiveLayerMask() ? "MASKED_APPLY" : "APPLY_TO_MODEL"
-                          }
+                          feature={getActiveLayerMask() ? "MASKED_APPLY" : "APPLY_TO_MODEL"}
                         />
                       </Button>
                       {activeState.textureDataUrl && (

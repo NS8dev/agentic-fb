@@ -163,7 +163,7 @@ vec3 fx_triplanar_normal( sampler2D normalMapTex, vec3 worldPos, vec3 worldNorma
 
   return normalize( nX * w.x + nY * w.y + nZ * w.z );
 }
-#endif`
+#endif`,
       )
       .replace(
         "#include <normal_fragment_maps>",
@@ -191,7 +191,7 @@ vec3 fx_triplanar_normal( sampler2D normalMapTex, vec3 worldPos, vec3 worldNorma
 	normal = normalize( normalMatrix * normal );
 #elif defined( USE_BUMPMAP )
 	normal = perturbNormalArb( - vViewPosition, normal, dHdxy_fwd(), faceDirection );
-#endif`
+#endif`,
       )
       .replace(
         "#include <map_fragment>",

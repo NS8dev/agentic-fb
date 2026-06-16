@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import fabric from "fabric";
+import * as fabric from "fabric";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
@@ -37,11 +37,7 @@ import {
   Maximize,
   Minimize,
 } from "lucide-react";
-import {
-  GRADIENT_PRESETS,
-  patternToDataUrl,
-  ALL_PATTERN_PRESETS,
-} from "@/lib/fabrixa/presets";
+import { GRADIENT_PRESETS, patternToDataUrl, ALL_PATTERN_PRESETS } from "@/lib/fabrixa/presets";
 import { SelectionMask, type SelectionMode } from "@/lib/fabrixa/selectionMask";
 import { APP_DATA_0 } from "@/lib/fabrixa/APP_DATA_0";
 import { type DesignLayer } from "@/lib/fabrixa/garments";
@@ -140,7 +136,7 @@ const EXTRA_PATTERNS = [
   },
 ];
 
-const getExtraPatternUrl = (p: any, c: string, b: string) => {
+const getExtraPatternUrl = (p: { svg: string }, c: string, b: string) => {
   const raw = p.svg.replace(/\{\{color\}\}/g, c).replace(/\{\{bg\}\}/g, b);
   return "data:image/svg+xml;charset=utf-8," + encodeURIComponent(raw);
 };
@@ -169,7 +165,7 @@ type Tool = "select" | "brush" | "eraser" | "pattern" | "lasso" | "polygon" | "m
 function getMaskBoundingBox(
   maskUrl: string,
   width: number,
-  height: number
+  height: number,
 ): Promise<{ left: number; top: number; width: number; height: number } | null> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -265,7 +261,12 @@ export function FabricEditor({
   const sizeRef = useRef({ w: 600, h: 600 });
   const [canvasReady, setCanvasReady] = useState(false);
   const [bgColor, setBgColor] = useState("#ffffff");
-  const [selectionBounds, setSelectionBounds] = useState<{ left: number; top: number; width: number; height: number } | null>(null);
+  const [selectionBounds, setSelectionBounds] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const maskImgRef = useRef<fabric.FabricImage | null>(null);
   const [opacity, setOpacity] = useState(100);
   const [hue, setHue] = useState(0);
@@ -276,8 +277,8 @@ export function FabricEditor({
   const toolRef = useRef<Tool>("select");
   const [brushColor, setBrushColor] = useState("#7e3c8c");
   const [brushSize, setBrushSize] = useState(8);
-  const [selected, setSelected] = useState<fabric.Object | null>(null);
-  const [layers, setLayers] = useState<fabric.Object[]>([]);
+  const [selected, setSelected] = useState<fabric.FabricObject | null>(null);
+  const [layers, setLayers] = useState<fabric.FabricObject[]>([]);
   const [patScale, setPatScale] = useState(1);
   const [patRotation, setPatRotation] = useState(0);
   const [patOffsetX, setPatOffsetX] = useState(0);
@@ -309,40 +310,43 @@ export function FabricEditor({
 
   // 3. Core Callbacks
   // Fit viewport camera to the current selection bounds with 50px margin
-  const fitToSelection = useCallback((customBounds?: typeof selectionBounds) => {
-    const c = canvasRef.current;
-    if (!c) return;
-    const bounds = customBounds !== undefined ? customBounds : selectionBounds;
-    if (!bounds) {
+  const fitToSelection = useCallback(
+    (customBounds?: typeof selectionBounds) => {
+      const c = canvasRef.current;
+      if (!c) return;
+      const bounds = customBounds !== undefined ? customBounds : selectionBounds;
+      if (!bounds) {
+        requestAnimationFrame(() => {
+          c.setViewportTransform([1, 0, 0, 1, 0, 0]);
+          c.requestRenderAll();
+        });
+        return;
+      }
+
+      const margin = 50;
+      const viewWidth = c.getWidth();
+      const viewHeight = c.getHeight();
+
+      const boxW = bounds.width + margin * 2;
+      const boxH = bounds.height + margin * 2;
+
+      const zoomX = viewWidth / boxW;
+      const zoomY = viewHeight / boxH;
+      const zoom = Math.max(0.1, Math.min(10, Math.min(zoomX, zoomY)));
+
+      const centerX = bounds.left + bounds.width / 2;
+      const centerY = bounds.top + bounds.height / 2;
+
+      const panX = viewWidth / 2 - centerX * zoom;
+      const panY = viewHeight / 2 - centerY * zoom;
+
       requestAnimationFrame(() => {
-        c.setViewportTransform([1, 0, 0, 1, 0, 0]);
+        c.setViewportTransform([zoom, 0, 0, zoom, panX, panY]);
         c.requestRenderAll();
       });
-      return;
-    }
-
-    const margin = 50;
-    const viewWidth = c.getWidth();
-    const viewHeight = c.getHeight();
-
-    const boxW = bounds.width + margin * 2;
-    const boxH = bounds.height + margin * 2;
-
-    const zoomX = viewWidth / boxW;
-    const zoomY = viewHeight / boxH;
-    const zoom = Math.max(0.1, Math.min(10, Math.min(zoomX, zoomY)));
-
-    const centerX = bounds.left + bounds.width / 2;
-    const centerY = bounds.top + bounds.height / 2;
-
-    const panX = viewWidth / 2 - centerX * zoom;
-    const panY = viewHeight / 2 - centerY * zoom;
-
-    requestAnimationFrame(() => {
-      c.setViewportTransform([zoom, 0, 0, zoom, panX, panY]);
-      c.requestRenderAll();
-    });
-  }, [selectionBounds]);
+    },
+    [selectionBounds],
+  );
 
   // Watch target mask url and resolve bounds
   useEffect(() => {
@@ -372,8 +376,12 @@ export function FabricEditor({
   const emit = useCallback(() => {
     const c = canvasRef.current;
     if (!c) return;
-    const overlay = c.getObjects().find((o) => (o as any).id === "maskOverlay");
-    const wireframe = c.getObjects().find((o) => (o as any).id === "uvWireframeOverlay");
+    const overlay = c
+      .getObjects()
+      .find((o) => (o as unknown as { id?: unknown }).id === "maskOverlay");
+    const wireframe = c
+      .getObjects()
+      .find((o) => (o as unknown as { id?: unknown }).id === "uvWireframeOverlay");
     if (overlay) overlay.set("visible", false);
     if (wireframe) wireframe.set("visible", false);
 
@@ -383,7 +391,7 @@ export function FabricEditor({
     if (wireframe) wireframe.set("visible", true);
 
     try {
-      const jsonObj = c.toJSON([
+      const jsonObj = (c as unknown as { toJSON: (properties?: string[]) => unknown }).toJSON([
         "id",
         "selectable",
         "evented",
@@ -408,7 +416,7 @@ export function FabricEditor({
     const c = canvasRef.current;
     if (!c || historyRef.current.lock) return;
     const json = JSON.stringify(
-      c.toJSON([
+      (c as unknown as { toJSON: (properties?: string[]) => unknown }).toJSON([
         "id",
         "selectable",
         "evented",
@@ -436,7 +444,7 @@ export function FabricEditor({
       !selected ||
       !selected.fill ||
       typeof selected.fill !== "object" ||
-      !("source" in (selected.fill as any))
+      !("source" in (selected.fill as unknown as { source?: unknown }))
     )
       return;
     const pat = selected.fill as fabric.Pattern;
@@ -456,14 +464,14 @@ export function FabricEditor({
     emit();
   }, [selected, patScale, patRotation, patOffsetX, patOffsetY, emit]);
 
-  const toggleVisibility = (obj: fabric.Object) => {
+  const toggleVisibility = (obj: fabric.FabricObject) => {
     obj.set({ visible: !obj.visible });
     canvasRef.current?.requestRenderAll();
     refreshLayers();
     emit();
   };
 
-  const toggleLock = (obj: fabric.Object) => {
+  const toggleLock = (obj: fabric.FabricObject) => {
     const locked = !obj.lockMovementX;
     obj.set({
       lockMovementX: locked,
@@ -477,7 +485,7 @@ export function FabricEditor({
     refreshLayers();
   };
 
-  const moveLayer = (obj: fabric.Object, dir: "up" | "down") => {
+  const moveLayer = (obj: fabric.FabricObject, dir: "up" | "down") => {
     const c = canvasRef.current;
     if (!c) return;
     if (dir === "up") c.bringObjectForward(obj);
@@ -500,7 +508,7 @@ export function FabricEditor({
     if (!c) return;
     const active = c.getActiveObject();
     if (!active || !(active instanceof fabric.ActiveSelection)) return;
-    active.toGroup();
+    (active as unknown as { toGroup: () => fabric.Group }).toGroup();
     c.requestRenderAll();
     refreshLayers();
     emit();
@@ -511,7 +519,7 @@ export function FabricEditor({
     if (!c) return;
     const active = c.getActiveObject();
     if (!active || !(active instanceof fabric.Group)) return;
-    active.toActiveSelection();
+    (active as unknown as { toActiveSelection: () => fabric.ActiveSelection }).toActiveSelection();
     c.requestRenderAll();
     refreshLayers();
     emit();
@@ -591,7 +599,7 @@ export function FabricEditor({
       }
 
       fabric.FabricImage.fromURL(off.toDataURL("image/png"))
-        .then((fImg) => {
+        .then((fImg: fabric.FabricImage) => {
           if (!canvasRef.current || canvasRef.current !== c) return;
           fImg.set({ left: 0, top: 0, scaleX: 0.5, scaleY: 0.5, selectable: true });
           c.add(fImg);
@@ -600,9 +608,10 @@ export function FabricEditor({
           emit();
           toast.success("Pattern generated");
         })
-        .catch((e) => {
-          if (e.name === "AbortError") return;
-          console.warn("Pattern application failed", e);
+        .catch((e: unknown) => {
+          const err = e as Error;
+          if (err && err.name === "AbortError") return;
+          console.warn("Pattern application failed", err);
         });
     };
     img.src = objDataUrl;
@@ -749,7 +758,8 @@ export function FabricEditor({
     });
   }, []);
 
-  const isMaskTool = (t: Tool) => t === "lasso" || t === "polygon" || t === "maskBrush" || t === "wand";
+  const isMaskTool = (t: Tool) =>
+    t === "lasso" || t === "polygon" || t === "maskBrush" || t === "wand";
 
   const run2dFloodFill = (startX: number, startY: number) => {
     const c = canvasRef.current;
@@ -760,8 +770,12 @@ export function FabricEditor({
     const h = sizeRef.current.h;
 
     // Temporarily hide overlays to scan the raw design pixels underneath
-    const overlay = c.getObjects().find((o) => (o as any).id === "maskOverlay");
-    const wireframe = c.getObjects().find((o) => (o as any).id === "uvWireframeOverlay");
+    const overlay = c
+      .getObjects()
+      .find((o) => (o as unknown as { id?: unknown }).id === "maskOverlay");
+    const wireframe = c
+      .getObjects()
+      .find((o) => (o as unknown as { id?: unknown }).id === "uvWireframeOverlay");
     if (overlay) overlay.set("visible", false);
     if (wireframe) wireframe.set("visible", false);
     c.renderAll();
@@ -831,10 +845,7 @@ export function FabricEditor({
           const na = data[nPix + 3];
 
           const d = Math.sqrt(
-            (nr - targetR) ** 2 +
-            (ng - targetG) ** 2 +
-            (nb - targetB) ** 2 +
-            (na - targetA) ** 2
+            (nr - targetR) ** 2 + (ng - targetG) ** 2 + (nb - targetB) ** 2 + (na - targetA) ** 2,
           );
           if (d <= tolerance) {
             queue.push(nIdx);
@@ -1077,8 +1088,8 @@ export function FabricEditor({
           c!.add(fImg);
           c!.renderAll();
           emit();
-        } catch (e: any) {
-          if (e.name === "AbortError") return;
+        } catch (e: unknown) {
+          if (e && typeof e === "object" && "name" in e && e.name === "AbortError") return;
           console.warn("Bake inside failed", e);
         }
       };
@@ -1184,8 +1195,8 @@ export function FabricEditor({
       c.add(img);
       c.setActiveObject(img);
       setImporting(null);
-    } catch (e: any) {
-      if (e.name === "AbortError") return;
+    } catch (e: unknown) {
+      if (e && typeof e === "object" && "name" in e && e.name === "AbortError") return;
       console.warn("Import failed", e);
       setImporting(null);
     }
@@ -1410,7 +1421,7 @@ export function FabricEditor({
       selected &&
       selected.fill &&
       typeof selected.fill === "object" &&
-      "patternTransform" in (selected.fill as any)
+      "patternTransform" in (selected.fill as unknown as { patternTransform?: unknown })
     ) {
       const pat = selected.fill as fabric.Pattern;
       const [a, b, c, d, tx, ty] = pat.patternTransform || [1, 0, 0, 1, 0, 0];
@@ -1467,7 +1478,7 @@ export function FabricEditor({
 
     if (uvWireframeUrl) {
       fabric.FabricImage.fromURL(uvWireframeUrl)
-        .then((img) => {
+        .then((img: fabric.FabricImage) => {
           if (!canvasRef.current || canvasRef.current !== c) return;
           img.scaleToWidth(canvasSize.w);
           img.scaleToHeight(canvasSize.h);
@@ -1486,7 +1497,7 @@ export function FabricEditor({
           c.sendObjectToBack(img);
           c.requestRenderAll();
         })
-        .catch((e) => console.warn("Failed to load uvWireframeUrl", e));
+        .catch((e: unknown) => console.warn("Failed to load uvWireframeUrl", e));
     }
 
     // initialMaskUrl loading removed here; handled reactively by dynamic clipPath useEffect below.
@@ -1497,7 +1508,7 @@ export function FabricEditor({
 
       const saveKey = autosaveKey ? `fabrixa:autosave:${autosaveKey}` : "fabrixa:autosave";
       const dbRestore = await getDbData(saveKey);
-      
+
       if (!canvasRef.current) return;
 
       const restore = initialJson || dbRestore;
@@ -1515,7 +1526,9 @@ export function FabricEditor({
             // Post-load selection mask application
             if (initialMaskUrl) {
               try {
-                const img = await fabric.FabricImage.fromURL(initialMaskUrl, { crossOrigin: "anonymous" });
+                const img = await fabric.FabricImage.fromURL(initialMaskUrl, {
+                  crossOrigin: "anonymous",
+                });
                 img.scaleToWidth(canvasSize.w);
                 img.scaleToHeight(canvasSize.h);
                 img.set({
@@ -1529,34 +1542,40 @@ export function FabricEditor({
                 maskImgRef.current = img;
 
                 c.getObjects().forEach((obj) => {
+                  const objWithId = obj as unknown as {
+                    id?: unknown;
+                    clipPath?: fabric.FabricObject;
+                  };
                   if (
-                    obj.id !== "backgroundContextLayer" &&
-                    obj.id !== "maskBoundaryLayer" &&
-                    obj.id !== "maskOverlay" &&
-                    obj.id !== "uvWireframeOverlay" &&
-                    obj.id !== "guide"
+                    objWithId.id !== "backgroundContextLayer" &&
+                    objWithId.id !== "maskBoundaryLayer" &&
+                    objWithId.id !== "maskOverlay" &&
+                    objWithId.id !== "uvWireframeOverlay" &&
+                    objWithId.id !== "guide"
                   ) {
-                    obj.set({ clipPath: fabric.util.object.clone(img) });
+                    const utilObj = fabric.util as unknown as { object: { clone: <T>(o: T) => T } };
+                    obj.set({ clipPath: utilObj.object.clone(img) });
                   }
                 });
 
                 if (c.freeDrawingBrush) {
-                  c.freeDrawingBrush.clipPath = fabric.util.object.clone(img);
+                  const utilObj = fabric.util as unknown as { object: { clone: <T>(o: T) => T } };
+                  (c.freeDrawingBrush as unknown as { clipPath: unknown }).clipPath =
+                    utilObj.object.clone(img);
                 }
 
                 // Create boundary overlay at 20% opacity
                 const boundary = await img.clone();
                 boundary.set({
-                  id: "maskBoundaryLayer",
-                  opacity: 0.20,
+                  opacity: 0.2,
                   selectable: false,
                   evented: false,
-                  globalCompositeOperation: "source-over",
-                  left: 0,
-                  top: 0,
                 });
+                (boundary as unknown as { id: string }).id = "maskBoundaryLayer";
                 c.add(boundary);
-                c.bringToFront(boundary);
+                (c as unknown as { bringToFront: (o: fabric.FabricObject) => void }).bringToFront(
+                  boundary,
+                );
                 c.requestRenderAll();
                 emit();
               } catch (err) {
@@ -1598,18 +1617,21 @@ export function FabricEditor({
       emit();
       refreshLayers();
     };
-    c.on("object:added", (e: any) => {
-      const obj = e.target;
+    c.on("object:added", (e: unknown) => {
+      const ev = e as { target?: fabric.FabricObject };
+      const obj = ev.target;
       if (obj) {
+        const objWithId = obj as unknown as { id?: unknown; clipPath?: fabric.FabricObject };
         if (
-          obj.id !== "backgroundContextLayer" &&
-          obj.id !== "maskBoundaryLayer" &&
-          obj.id !== "maskOverlay" &&
-          obj.id !== "uvWireframeOverlay" &&
-          obj.id !== "guide"
+          objWithId.id !== "backgroundContextLayer" &&
+          objWithId.id !== "maskBoundaryLayer" &&
+          objWithId.id !== "maskOverlay" &&
+          objWithId.id !== "uvWireframeOverlay" &&
+          objWithId.id !== "guide"
         ) {
           if (maskImgRef.current && obj.clipPath !== maskImgRef.current) {
-            obj.set({ clipPath: fabric.util.object.clone(maskImgRef.current) });
+            const utilObj = fabric.util as unknown as { object: { clone: <T>(o: T) => T } };
+            obj.set({ clipPath: utilObj.object.clone(maskImgRef.current) });
           }
         }
       }
@@ -1619,22 +1641,29 @@ export function FabricEditor({
     c.on("object:removed", onAny);
     c.on("object:scaling", onAny);
     c.on("object:rotating", onAny);
-    c.on("mouse:down", (opt) => {
+    c.on("mouse:down", (opt: unknown) => {
+      const event = opt as { e: Event };
       if (toolRef.current === "eraser" && !c.getActiveObject()) {
-        const target = c.findTarget(opt.e);
+        const target = c.findTarget(event.e as unknown as PointerEvent) as unknown as
+          | fabric.FabricObject
+          | undefined;
         if (target) {
           c.setActiveObject(target);
           c.renderAll();
         }
       }
     });
-    c.on("path:created", async (e: any) => {
-      if (toolRef.current === "eraser" && e.path) {
-        const path = e.path;
+    c.on("path:created", async (e: unknown) => {
+      const ev = e as { path?: fabric.FabricObject };
+      if (toolRef.current === "eraser" && ev.path) {
+        const path = ev.path;
         path.set({ stroke: "black", fill: "black", opacity: 1 });
         const objects = c
           .getObjects()
-          .filter((obj) => obj !== path && (obj as any).id !== "guide" && obj.selectable);
+          .filter(
+            (obj) =>
+              obj !== path && (obj as unknown as { id?: unknown }).id !== "guide" && obj.selectable,
+          );
         for (const target of objects) {
           if (path.intersectsWithObject(target) || target.containsPoint(path.getCenterPoint())) {
             const clone = await path.clone();
@@ -1645,7 +1674,10 @@ export function FabricEditor({
             const relX = clone.left - center.x;
             const relY = clone.top - center.y;
             const rad = fabric.util.degreesToRadians(-angle);
-            const rotated = fabric.util.rotatePoint(
+            const utilRotate = fabric.util as unknown as {
+              rotatePoint: (p: fabric.Point, origin: fabric.Point, rad: number) => fabric.Point;
+            };
+            const rotated = utilRotate.rotatePoint(
               new fabric.Point(relX, relY),
               new fabric.Point(0, 0),
               rad,
@@ -1663,7 +1695,7 @@ export function FabricEditor({
             if (!target.clipPath || !(target.clipPath instanceof fabric.Group)) {
               const oldClip = target.clipPath;
               const groupItems = oldClip ? [oldClip, clone] : [clone];
-              target.clipPath = new fabric.Group(groupItems, {
+              target.clipPath = new fabric.Group(groupItems as fabric.FabricObject[], {
                 inverted: true,
                 absolutePositioned: false,
               });
@@ -1681,12 +1713,14 @@ export function FabricEditor({
         onAny();
       }
     });
-    c.on("selection:created", (e) => {
-      setSelected(e.selected?.[0] ?? null);
+    c.on("selection:created", (e: unknown) => {
+      const ev = e as { selected?: fabric.FabricObject[] };
+      setSelected(ev.selected?.[0] ?? null);
       refreshLayers();
     });
-    c.on("selection:updated", (e) => {
-      setSelected(e.selected?.[0] ?? null);
+    c.on("selection:updated", (e: unknown) => {
+      const ev = e as { selected?: fabric.FabricObject[] };
+      setSelected(ev.selected?.[0] ?? null);
       refreshLayers();
     });
     c.on("selection:cleared", () => {
@@ -1695,8 +1729,9 @@ export function FabricEditor({
     });
 
     const guideLayer: { v: number | null; h: number | null } = { v: null, h: null };
-    c.on("object:moving", (e) => {
-      const obj = e.target;
+    c.on("object:moving", (e: unknown) => {
+      const ev = e as { target?: fabric.FabricObject };
+      const obj = ev.target;
       if (!obj) return;
       const cw = c.getWidth();
       const ch = c.getHeight();
@@ -1729,17 +1764,25 @@ export function FabricEditor({
       if (!currentCanvas) return;
 
       // Sort layers: desaturated background at bottom, mask boundary at top
-      const bg = currentCanvas.getObjects().find((o) => (o as any).id === "backgroundContextLayer");
-      if (bg && typeof currentCanvas.sendToBack === "function") {
-        currentCanvas.sendToBack(bg);
+      const bg = currentCanvas
+        .getObjects()
+        .find((o) => (o as unknown as { id?: unknown }).id === "backgroundContextLayer");
+      const canvasWithOrdering = currentCanvas as unknown as {
+        sendToBack: (o: fabric.FabricObject) => void;
+        bringToFront: (o: fabric.FabricObject) => void;
+      };
+      if (bg && typeof canvasWithOrdering.sendToBack === "function") {
+        canvasWithOrdering.sendToBack(bg);
       }
       const boundary = currentCanvas
         .getObjects()
         .find(
-          (o) => (o as any).id === "maskBoundaryLayer" || (o as any).id === "maskOverlay"
+          (o) =>
+            (o as unknown as { id?: unknown }).id === "maskBoundaryLayer" ||
+            (o as unknown as { id?: unknown }).id === "maskOverlay",
         );
-      if (boundary && typeof currentCanvas.bringToFront === "function") {
-        currentCanvas.bringToFront(boundary);
+      if (boundary && typeof canvasWithOrdering.bringToFront === "function") {
+        canvasWithOrdering.bringToFront(boundary);
       }
 
       const ctx = (currentCanvas as unknown as { contextTop: CanvasRenderingContext2D }).contextTop;
@@ -1820,8 +1863,7 @@ export function FabricEditor({
     return () => {
       try {
         const lastUrl = c.toDataURL({ format: "png", multiplier: 1 });
-        onChange(lastUrl);
-        const json = c.toJSON([
+        const json = (c as unknown as { toJSON: (properties?: string[]) => unknown }).toJSON([
           "id",
           "selectable",
           "evented",
@@ -1833,15 +1875,17 @@ export function FabricEditor({
           "hasControls",
           "globalCompositeOperation",
         ]);
+        const jsonStr = JSON.stringify(json);
+        onChange(lastUrl, jsonStr);
         const saveKey = autosaveKey ? `fabrixa:autosave:${autosaveKey}` : "fabrixa:autosave";
-        setDbData(saveKey, JSON.stringify(json));
+        setDbData(saveKey, jsonStr);
       } catch (e) {
         /* ignore */
       }
       controller.abort();
       abortRef.current = null;
       try {
-        if (c && !(c as any).isDisposed) {
+        if (c && !(c as unknown as { isDisposed?: boolean }).isDisposed) {
           c.dispose();
         }
       } catch (e) {
@@ -1854,7 +1898,8 @@ export function FabricEditor({
 
   useEffect(() => {
     const c = canvasRef.current;
-    if (c && !(c as any).disposed && !(c as any)._disposed) {
+    const canvasObj = c as unknown as { disposed?: boolean; _disposed?: boolean };
+    if (c && !canvasObj.disposed && !canvasObj._disposed) {
       c.setDimensions({ width: canvasSize.w, height: canvasSize.h });
       c.renderAll();
     }
@@ -1871,12 +1916,18 @@ export function FabricEditor({
     if (!c || !canvasReady) return;
 
     // Remove existing layers first
-    const existingBg = c.getObjects().find((o) => (o as any).id === "backgroundContextLayer");
+    const existingBg = c
+      .getObjects()
+      .find((o) => (o as unknown as { id?: unknown }).id === "backgroundContextLayer");
     if (existingBg) c.remove(existingBg);
 
-    const existingBoundary = c.getObjects().find(
-      (o) => (o as any).id === "maskBoundaryLayer" || (o as any).id === "maskOverlay"
-    );
+    const existingBoundary = c
+      .getObjects()
+      .find(
+        (o) =>
+          (o as unknown as { id?: unknown }).id === "maskBoundaryLayer" ||
+          (o as unknown as { id?: unknown }).id === "maskOverlay",
+      );
     if (existingBoundary) c.remove(existingBoundary);
 
     c.clipPath = undefined;
@@ -1891,17 +1942,17 @@ export function FabricEditor({
           img.scaleToWidth(canvasSize.w);
           img.scaleToHeight(canvasSize.h);
           img.set({
-            id: "backgroundContextLayer",
             selectable: false,
             evented: false,
             left: 0,
             top: 0,
           });
+          (img as unknown as { id: string }).id = "backgroundContextLayer";
           const satFilter = new fabric.filters.Saturation({ saturation: -0.8 });
           img.filters.push(satFilter);
           img.applyFilters();
           c.add(img);
-          c.sendToBack(img);
+          (c as unknown as { sendToBack: (o: fabric.FabricObject) => void }).sendToBack(img);
           c.requestRenderAll();
         } catch (e) {
           console.warn("Failed to load backgroundContextLayer", e);
@@ -1927,35 +1978,41 @@ export function FabricEditor({
 
           // Clip existing objects (excluding background/boundary/overlays)
           c.getObjects().forEach((obj) => {
+            const objWithId = obj as unknown as { id?: unknown; clipPath?: fabric.FabricObject };
             if (
-              obj.id !== "backgroundContextLayer" &&
-              obj.id !== "maskBoundaryLayer" &&
-              obj.id !== "maskOverlay" &&
-              obj.id !== "uvWireframeOverlay" &&
-              obj.id !== "guide"
+              objWithId.id !== "backgroundContextLayer" &&
+              objWithId.id !== "maskBoundaryLayer" &&
+              objWithId.id !== "maskOverlay" &&
+              objWithId.id !== "uvWireframeOverlay" &&
+              objWithId.id !== "guide"
             ) {
-              obj.set({ clipPath: fabric.util.object.clone(img) });
+              const utilObj = fabric.util as unknown as { object: { clone: <T>(o: T) => T } };
+              obj.set({ clipPath: utilObj.object.clone(img) });
             }
           });
 
           // Clip free drawing brush
           if (c.freeDrawingBrush) {
-            c.freeDrawingBrush.clipPath = fabric.util.object.clone(img);
+            const utilObj = fabric.util as unknown as { object: { clone: <T>(o: T) => T } };
+            (c.freeDrawingBrush as unknown as { clipPath: unknown }).clipPath =
+              utilObj.object.clone(img);
           }
 
           // Create boundary overlay at 20% opacity
           const boundary = await img.clone();
           boundary.set({
-            id: "maskBoundaryLayer",
-            opacity: 0.20,
+            opacity: 0.2,
             selectable: false,
             evented: false,
             globalCompositeOperation: "source-over",
             left: 0,
             top: 0,
           });
+          (boundary as unknown as { id: string }).id = "maskBoundaryLayer";
           c.add(boundary);
-          c.bringToFront(boundary);
+          (c as unknown as { bringToFront: (o: fabric.FabricObject) => void }).bringToFront(
+            boundary,
+          );
           c.requestRenderAll();
         } catch (e) {
           console.warn("Failed to load mask layer for clipping", e);
@@ -1986,7 +2043,8 @@ export function FabricEditor({
       b.color = brushColor;
       b.width = brushSize;
       if (maskImgRef.current) {
-        b.clipPath = fabric.util.object.clone(maskImgRef.current);
+        const utilObj = fabric.util as unknown as { object: { clone: <T>(o: T) => T } };
+        (b as unknown as { clipPath: unknown }).clipPath = utilObj.object.clone(maskImgRef.current);
       }
       c.freeDrawingBrush = b;
     } else if (tool === "eraser") {
@@ -2008,13 +2066,25 @@ export function FabricEditor({
         pb.source = img as unknown as HTMLCanvasElement;
         pb.width = brushSize * 3;
         if (maskImgRef.current) {
-          pb.clipPath = fabric.util.object.clone(maskImgRef.current);
+          const utilObj = fabric.util as unknown as { object: { clone: <T>(o: T) => T } };
+          (pb as unknown as { clipPath: unknown }).clipPath = utilObj.object.clone(
+            maskImgRef.current,
+          );
         }
         canvasRef.current.freeDrawingBrush = pb;
       };
       img.src = dataUrl;
     }
-  }, [tool, brushColor, brushSize, bgColor, patternBrushId, patternColor, patternBg, maskImgRef.current]);
+  }, [
+    tool,
+    brushColor,
+    brushSize,
+    bgColor,
+    patternBrushId,
+    patternColor,
+    patternBg,
+    maskImgRef.current,
+  ]);
 
   useEffect(() => {
     const obj = selected;
@@ -2089,8 +2159,8 @@ export function FabricEditor({
           c.add(img);
           c.setActiveObject(img);
           c.renderAll();
-        } catch (e: any) {
-          if (e.name === "AbortError") return;
+        } catch (e: unknown) {
+          if (e && typeof e === "object" && "name" in e && e.name === "AbortError") return;
           console.warn("Load image failed", e);
         }
       },
@@ -2098,8 +2168,7 @@ export function FabricEditor({
         const c = canvasRef.current;
         if (!c) return { url: "", json: "" };
         const url = c.toDataURL({ format: "png", multiplier: 1 });
-        onChange(url);
-        const json = c.toJSON([
+        const json = (c as unknown as { toJSON: (properties?: string[]) => unknown }).toJSON([
           "id",
           "selectable",
           "evented",
@@ -2112,6 +2181,7 @@ export function FabricEditor({
           "globalCompositeOperation",
         ]);
         const jsonStr = JSON.stringify(json);
+        onChange(url, jsonStr);
         const saveKey = autosaveKey ? `fabrixa:autosave:${autosaveKey}` : "fabrixa:autosave";
         await setDbData(saveKey, jsonStr);
         return { url, json: jsonStr };
@@ -2124,7 +2194,12 @@ export function FabricEditor({
     const c = canvasRef.current;
     if (!el || !c) return;
     const fit = () => {
-      if (!canvasRef.current || canvasRef.current !== c || (c as any)._disposed) return;
+      if (
+        !canvasRef.current ||
+        canvasRef.current !== c ||
+        (c as unknown as { _disposed?: boolean })._disposed
+      )
+        return;
       const padX = 40;
       const padY = 40;
       const maxW = el.clientWidth - padX;
@@ -2152,7 +2227,11 @@ export function FabricEditor({
       const meta = e.ctrlKey || e.metaKey;
       if (meta && e.key.toLowerCase() === "z") {
         e.preventDefault();
-        e.shiftKey ? redo() : undo();
+        if (e.shiftKey) {
+          redo();
+        } else {
+          undo();
+        }
         return;
       }
       if (meta && e.key.toLowerCase() === "y") {
@@ -2438,7 +2517,7 @@ export function FabricEditor({
                       crossOrigin: "anonymous",
                       signal: abortRef.current?.signal,
                     })
-                      .then((img) => {
+                      .then((img: fabric.FabricImage) => {
                         if (!canvasRef.current || canvasRef.current !== c) return;
                         img.scaleToWidth(canvasSize.w);
                         img.set({ left: 0, top: 0, selectable: true });
@@ -2446,9 +2525,10 @@ export function FabricEditor({
                         c.requestRenderAll();
                         toast.success("Gradient added as a layer");
                       })
-                      .catch((e) => {
-                        if (e.name === "AbortError") return;
-                        console.warn("Gradient apply failed", e);
+                      .catch((e: unknown) => {
+                        const err = e as Error;
+                        if (err && err.name === "AbortError") return;
+                        console.warn("Gradient apply failed", err);
                       });
                   }}
                 />
@@ -2715,7 +2795,7 @@ export function FabricEditor({
                   {selected &&
                     selected.fill &&
                     typeof selected.fill === "object" &&
-                    "source" in (selected.fill as any) && (
+                    "source" in (selected.fill as unknown as { source: unknown }) && (
                       <div className="mt-4 space-y-4 rounded-xl border border-white/5 bg-panel/30 p-3 backdrop-blur-md shadow-inner">
                         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
                           <Grid3x3 className="h-3 w-3" /> Pattern Transform
@@ -2885,11 +2965,13 @@ function ToolBtn({
   children,
   onClick,
   variant = "ghost",
+  disabled = false,
 }: {
   label: string;
   children: React.ReactNode;
   onClick: () => void;
   variant?: "ghost" | "default";
+  disabled?: boolean;
 }) {
   return (
     <Tooltip>
@@ -2898,6 +2980,7 @@ function ToolBtn({
           size="sm"
           variant={variant}
           onClick={onClick}
+          disabled={disabled}
           className="h-9 w-full shrink-0 px-0 sm:w-auto sm:px-3"
         >
           {children}

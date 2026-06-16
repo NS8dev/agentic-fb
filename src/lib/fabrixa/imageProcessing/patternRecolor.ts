@@ -1,4 +1,4 @@
-import { hexToRgb, getLuminance } from "./colorTheoryUtils";
+import { hexToRgb, getLuminance } from "./colorTheory";
 
 /**
  * Recolors a pattern texture non-destructively using destination-in compositing.
@@ -7,7 +7,7 @@ import { hexToRgb, getLuminance } from "./colorTheoryUtils";
 export async function recolorTexture(
   imageSource: string | HTMLImageElement | HTMLCanvasElement,
   plates: string[],
-  newPalette: string[]
+  newPalette: string[],
 ): Promise<HTMLCanvasElement> {
   let img: HTMLImageElement | HTMLCanvasElement;
   if (typeof imageSource === "string") {
@@ -92,7 +92,8 @@ export async function recolorTexture(
 
   // 5. Composite each plate mask with its new mapped color
   for (let p = 0; p < sortedPlates.length; p++) {
-    const targetColor = sortedNewPalette[p] || sortedNewPalette[sortedNewPalette.length - 1] || "#ffffff";
+    const targetColor =
+      sortedNewPalette[p] || sortedNewPalette[sortedNewPalette.length - 1] || "#ffffff";
 
     // Solid color canvas
     const plateCanvas = document.createElement("canvas");

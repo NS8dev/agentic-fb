@@ -78,7 +78,9 @@ export function hslToRgb(h: number, s: number, l: number): RGB {
   h /= 360;
   s /= 100;
   l /= 100;
-  let r = l, g = l, b = l;
+  let r = l,
+    g = l,
+    b = l;
   if (s !== 0) {
     const hue2rgb = (p: number, q: number, t: number) => {
       if (t < 0) t += 1;
@@ -114,12 +116,13 @@ export function getLuminance(hex: string): number {
  */
 export function generateAlgorithmicPalettes(
   basePalette: string[],
-  type: "warm" | "cool" | "analogous"
+  type: "warm" | "cool" | "analogous",
 ): string[] {
   return basePalette.map((hex) => {
     const rgb = hexToRgb(hex);
     const hsl = rgbToHsl(rgb.r, rgb.g, rgb.b);
-    let { h, s, l } = hsl;
+    const { l } = hsl;
+    let { h, s } = hsl;
 
     if (type === "warm") {
       // Warm shift: pull hue towards 15 degrees (red/orange)
@@ -152,7 +155,7 @@ export function generateAlgorithmicPalettes(
  */
 export async function extractPlates(
   imageSource: string | HTMLImageElement | HTMLCanvasElement,
-  maxColors = 5
+  maxColors = 5,
 ): Promise<string[]> {
   let img: HTMLImageElement | HTMLCanvasElement;
   if (typeof imageSource === "string") {
@@ -240,7 +243,7 @@ export async function extractPlates(
 export function generateHarmoniousPalette(
   baseHex: string,
   mode: "triadic" | "complementary" | "split-complementary",
-  count = 5
+  count = 5,
 ): string[] {
   const rgb = hexToRgb(baseHex);
   const { h, s, l } = rgbToHsl(rgb.r, rgb.g, rgb.b);
@@ -294,4 +297,3 @@ export function generateHarmoniousPalette(
   }
   return result;
 }
-

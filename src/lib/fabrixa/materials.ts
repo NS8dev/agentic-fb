@@ -231,11 +231,14 @@ export function getNormalMap(presetId: FabricPresetId): Promise<THREE.Texture> {
             const fallback = generateProceduralNormalMap();
             normalCache[presetId] = fallback;
             resolve(fallback);
-          }
+          },
         );
       })
       .catch((err) => {
-        console.warn(`Failed to fetch normal map from ${url} (catch/404), using procedural fallback.`, err);
+        console.warn(
+          `Failed to fetch normal map from ${url} (catch/404), using procedural fallback.`,
+          err,
+        );
         const fallback = generateProceduralNormalMap();
         normalCache[presetId] = fallback;
         resolve(fallback);

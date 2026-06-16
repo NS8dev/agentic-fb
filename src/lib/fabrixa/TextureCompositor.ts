@@ -88,7 +88,9 @@ export async function compositeLayers(
         const offscreenCanvas = document.createElement("canvas");
         offscreenCanvas.width = width;
         offscreenCanvas.height = height;
-        const offscreenCtx = offscreenCanvas.getContext("2d", { colorSpace: "srgb" as PredefinedColorSpace })!;
+        const offscreenCtx = offscreenCanvas.getContext("2d", {
+          colorSpace: "srgb" as PredefinedColorSpace,
+        })!;
 
         offscreenCtx.drawImage(contentImg, 0, 0, width, height);
         offscreenCtx.globalCompositeOperation = "destination-in";
@@ -102,7 +104,7 @@ export async function compositeLayers(
         }
 
         offscreenCtx.drawImage(maskBitmap || alphaMaskCanvas, 0, 0);
-        
+
         if (maskBitmap) {
           maskBitmap.close();
         }

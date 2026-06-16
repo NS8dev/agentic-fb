@@ -112,12 +112,12 @@ function applyPartToMaterial(
     internal.originalColor = mat.color ? mat.color.clone() : null;
     internal.originalMapCached = true;
     mat.map = emptyBaseTex; // Ensure USE_MAP is active
-    
+
     // Completely disable emissive configurations
     mat.emissiveMap = null;
     if (mat.emissive && typeof mat.emissive.set === "function") mat.emissive.set("#000000");
     mat.emissiveIntensity = 0;
-    
+
     if (mat.color && typeof mat.color.set === "function") mat.color.set("#ffffff");
     mat.needsUpdate = true;
   }
@@ -190,12 +190,14 @@ function applyPartToMaterial(
   // ---- TILING (UV vs world-space triplanar) ----
   const tilingMode = state?.tilingMode ?? "world";
   const tex = mat.map !== emptyBaseTex ? mat.map : null;
-  const transformOpts = state ? {
-    scale: state.textureScale ?? 8,
-    rotation: state.textureRotation ?? 0,
-    offsetX: state.textureOffsetX ?? 0,
-    offsetY: state.textureOffsetY ?? 0,
-  } : null;
+  const transformOpts = state
+    ? {
+        scale: state.textureScale ?? 8,
+        rotation: state.textureRotation ?? 0,
+        offsetX: state.textureOffsetX ?? 0,
+        offsetY: state.textureOffsetY ?? 0,
+      }
+    : null;
 
   if (tex && transformOpts) {
     applyTextureTransform(tex, transformOpts);
@@ -237,21 +239,17 @@ function applyPartToMaterial(
   mat.envMapIntensity = state?.reflectionIntensity ?? preset.envMapIntensity;
 
   // ---- SHADOWS & NORMAL MAP PIPELINE ----
-  if (showcaseMode) {
-    getNormalMap(presetId).then((nMap) => {
-      if (mat) {
-        mat.normalMap = nMap;
-        if (transformOpts && nMap) {
-          applyTextureTransform(nMap, transformOpts);
-        }
-        const ns = preset.normalScale;
-        if (mat.normalScale) mat.normalScale.set(ns[0], ns[1]);
-        mat.needsUpdate = true;
+  getNormalMap(presetId).then((nMap) => {
+    if (mat) {
+      mat.normalMap = nMap;
+      if (transformOpts && nMap) {
+        applyTextureTransform(nMap, transformOpts);
       }
-    });
-  } else {
-    mat.normalMap = null;
-  }
+      const ns = preset.normalScale;
+      if (mat.normalScale) mat.normalScale.set(ns[0], ns[1]);
+      mat.needsUpdate = true;
+    }
+  });
 }
 
 /** Normalize GLB materials to Physical for hyper-realism. */
@@ -342,7 +340,11 @@ function GlbGarment({
         const isActive = activePart === key;
 
         if (isActive && onUvWireframeGenerated && !wireframeCache.current[key]) {
-          const runIdle = (typeof window !== "undefined" && (window as any).requestIdleCallback) || ((cb: any) => setTimeout(cb, 1));
+          const win =
+            typeof window !== "undefined"
+              ? (window as unknown as Window & { requestIdleCallback?: (cb: () => void) => void })
+              : null;
+          const runIdle = win?.requestIdleCallback || ((cb: () => void) => setTimeout(cb, 1));
           runIdle(() => {
             const wireframeUrl = generateUvWireframe(mesh);
             wireframeCache.current[key] = wireframeUrl;
@@ -1064,7 +1066,9 @@ function GarmentBody({
 
 function CaptureHandler() {
   const { gl, scene, camera, size } = useThree();
-  const controls = useThree((s) => (s as any).controls);
+  const controls = useThree(
+    (s) => (s as unknown as { controls?: { target?: THREE.Vector3 } }).controls,
+  );
 
   useEffect(() => {
     const handleCapture = async (e: Event) => {
@@ -1180,7 +1184,7 @@ export function GarmentPreview({
       {/* Hyper-realistic Studio Rig: 3-point + Rim + Fill */}
       <ambientLight intensity={scene.ambient * 0.8} />
       <hemisphereLight args={["#ffffff", "#cfd0e0", 0.45]} />
-      
+
       {/* Directional light with tight bounds for self-shadowing */}
       <directionalLight
         castShadow={!!showcaseMode}
@@ -1220,8 +1224,14 @@ export function GarmentPreview({
           <Mannequin visible={showMannequin} gender={garment.gender ?? "unisex"} />
         </group>
         <Environment
-          files={(!showcaseMode && scene.envPreset === "studio") ? "/models/environments/studio_small_03_1k.hdr" : undefined}
-          preset={showcaseMode ? "city" : (scene.envPreset === "studio" ? undefined : scene.envPreset)}
+          files={
+            !showcaseMode && scene.envPreset === "studio"
+              ? "/models/environments/studio_small_03_1k.hdr"
+              : undefined
+          }
+          preset={
+            showcaseMode ? "city" : scene.envPreset === "studio" ? undefined : scene.envPreset
+          }
         />
       </Suspense>
       {!isTransparent && (

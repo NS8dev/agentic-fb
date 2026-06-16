@@ -57,11 +57,11 @@ export function normalizeGarmentMaterial(mat: THREE.Material): THREE.MeshPhysica
     metalness: 0.05,
     side: THREE.DoubleSide,
   });
-  if ("color" in mat && (mat as any).color) {
-    phys.color.copy((mat as any).color);
+  if ("color" in mat && (mat as unknown as { color?: THREE.Color }).color) {
+    phys.color.copy((mat as unknown as { color: THREE.Color }).color);
   }
-  if ("map" in mat && (mat as any).map) {
-    phys.map = (mat as any).map;
+  if ("map" in mat && (mat as unknown as { map?: THREE.Texture | null }).map) {
+    phys.map = (mat as unknown as { map: THREE.Texture }).map;
   }
   mat.dispose();
   return phys;
